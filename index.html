@@ -8,6 +8,8 @@
 
   <!-- SheetJS -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- QR Code (camera) -->
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
 
   <style>
     :root{
@@ -39,6 +41,7 @@
     .btn:hover{background:var(--primary-2)} .btn:active{transform:scale(.97)}
     .btn.secondary{background:#333;box-shadow:0 4px 12px rgba(0,0,0,.2)}
     .btn.secondary:hover{background:#000}
+    .btn.ghost{background:#fff;color:#333;border:2px solid #e8e8e8;box-shadow:none}
 
     .uploader{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
     .file{
@@ -53,22 +56,22 @@
 
     /* layout em 2 colunas */
     .grid{display:grid;gap:16px}
-    @media(min-width:980px){ .grid{grid-template-columns:1fr 1fr} } /* 50/50 pra visualizar melhor */
+    @media(min-width:980px){ .grid{grid-template-columns:1fr 1fr} }
 
-    .scanbar{display:flex;gap:8px;margin-top:10px}
+    .scanbar{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
     .scanbar input{
-      flex:1;padding:16px 14px;border:2px solid #e8e8e8;border-radius:12px;font-size:18px;outline:none;background:#fff;
+      flex:1;min-width:220px;padding:16px 14px;border:2px solid #e8e8e8;border-radius:12px;font-size:18px;outline:none;background:#fff;
       transition:border-color .15s,box-shadow .15s,transform .08s;
     }
     .scanbar input:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(255,87,34,.12)}
     .scanbar input:active{transform:scale(.999)}
 
-    /* KPIs bonitos, sem quebrar palavras no meio */
+    /* KPIs */
     .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px;align-items:stretch}
     .kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;min-height:84px}
     .kpi .label{color:var(--muted);font-size:12px;letter-spacing:.35px;text-transform:uppercase;line-height:1;opacity:.95}
-    .kpi .value{margin-top:6px;font-size:20px;font-weight:900;line-height:1.2;word-break:normal;overflow-wrap:anywhere;white-space:normal;font-variant-numeric:tabular-nums}
-    .kpi .value.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.3px;overflow-wrap:anywhere}
+    .kpi .value{margin-top:6px;font-size:20px;font-weight:900;line-height:1.2;white-space:normal;font-variant-numeric:tabular-nums}
+    .kpi .value.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.3px}
 
     /* Tabelas */
     table{width:100%;border-collapse:collapse}
@@ -85,6 +88,11 @@
     .chipCheck:hover{box-shadow:0 3px 10px rgba(0,0,0,.06)}
     .chipCheck input{display:none}
     .chipCheck input:checked + span{font-weight:800;color:var(--primary)}
+
+    /* Scanner (overlay simples) */
+    #qrWrap{display:none;margin-top:10px}
+    #qrReader{width:100%;max-width:560px;border:2px solid #eee;border-radius:12px;overflow:hidden}
+    #qrControls{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
   </style>
 </head>
 <body>
@@ -112,8 +120,18 @@
       <div class="scanbar">
         <input id="scan" placeholder="Bipe/insira o BRS... (Enter)" autocomplete="off" disabled />
         <button class="btn" id="btnScan" disabled>Bipar</button>
+        <button class="btn ghost" id="btnQR" disabled>Escanear QR</button>
       </div>
       <div id="scanMsg" class="muted" style="margin-top:8px">Carregue a planilha para habilitar a busca.</div>
+
+      <!-- Leitor de QR -->
+      <div id="qrWrap">
+        <div id="qrReader"></div>
+        <div id="qrControls">
+          <button class="btn secondary" id="btnQRStop">Parar câmera</button>
+          <span class="muted" id="qrHint">Aponte a câmera para o QR com o código do BRS.</span>
+        </div>
+      </div>
 
       <div id="resultLeft" style="margin-top:16px; display:none">
         <div class="kpis">
@@ -126,7 +144,7 @@
       </div>
     </section>
 
-    <!-- COLUNA DIREITA: Endereço + Filtro + Tabela (no lugar do "Últimos bipes") -->
+    <!-- COLUNA DIREITA -->
     <aside class="card" id="rightPane">
       <div id="resultRight" style="display:none">
         <div>
@@ -165,7 +183,6 @@
         </div>
       </div>
 
-      <!-- Mensagem quando ainda não bipou nada -->
       <div id="placeholderRight" class="muted">Bipe um BRS para ver endereço, filtrar e listar as rotas do mesmo bairro.</div>
     </aside>
   </div>
@@ -212,6 +229,9 @@ let VEH_TYPES = [];
 let VEH_FILTER = new Set();
 let LAST_ROW = null;
 let LAST_SAME = [];
+
+let qrReader = null; // html5-qrcode instance
+let qrActive = false;
 
 /* ========= Excel ========= */
 function parseSheetToObjects(ws){
@@ -317,8 +337,14 @@ async function handleLoad(inputFile){
 
     $("#baseInfo").textContent = `${BASE_ROWS.length} linhas carregadas`;
     $("#sheetInfo").textContent = `Aba usada: ${extName}`;
-    $("#scan").disabled = false; $("#btnScan").disabled = false;
-    $("#scanMsg").innerHTML = '<span class="ok">Base carregada! Já pode bipar.</span>';
+    $("#scan").disabled = false; $("#btnScan").disabled = false; $("#btnQR").disabled = false;
+    $("#scanMsg").innerHTML = '<span class="ok">Base carregada! Já pode bipar ou escanear o QR.</span>';
+
+    // Mensagem clara de confirmação
+    const when = new Date().toLocaleString();
+    $("#loadMsg").innerHTML = `<span class="ok">Arquivo "<b>${file.name}</b>" lido e gravado na memória (${BASE_ROWS.length} linhas) em ${when}.</span>`;
+
+    // Salva metadados da última base
     localStorage.setItem('last_base_info', JSON.stringify({name:file.name, rows:BASE_ROWS.length, when:Date.now()}));
     focusScan();
   }catch(e){
@@ -338,22 +364,18 @@ function renderResult(row, same){
     .filter(r => (r.rota||'') !== (row.rota||''))
     .filter(r => !VEH_FILTER.size || VEH_FILTER.has(r.veiculo||''));
 
-  // mostra painéis
   $("#resultLeft").style.display="block";
   $("#resultRight").style.display="block";
   $("#placeholderRight").style.display="none";
 
-  // KPIs (esquerda)
   $("#kBRS").textContent = row.brs || '—';
   $("#kRota").textContent = row.rota || '—';
   $("#kBairro").textContent = row.bairro || '—';
   $("#kVeiculo").textContent = row.veiculo || '—';
   $("#kAT").textContent = row.at || '—';
 
-  // endereço (direita)
   $("#kEndereco").textContent = row.endereco || '—';
 
-  // tabela (direita)
   const tbody = $("#sameTable tbody"); tbody.innerHTML = "";
   sameFiltered.forEach(r=>{
     const tr = document.createElement("tr");
@@ -382,13 +404,13 @@ function handleScan(){
   if(!INDEX_BRS.size){ $("#scanMsg").innerHTML = '<span class="err">Carregue a base primeiro.</span>'; return; }
 
   const row = INDEX_BRS.get(normBRS(code));
-  if(!row){ $("#scanMsg").innerHTML = '<span class="err">BRS não encontrado na base.</span>'; input.value=''; focusScan(); return; }
+  if(!row){ $("#scanMsg").innerHTML = '<span class="err">Código não encontrado na base.</span>'; input.value=''; focusScan(); return; }
 
   const same = findSameNeighborhoodDedupe(row.bairro);
   LAST_ROW = row; LAST_SAME = same;
 
   renderResult(row, same);
-  $("#scanMsg").innerHTML = '<span class="ok">Bipado com sucesso.</span>';
+  $("#scanMsg").innerHTML = '<span class="ok">Pesquisa concluída.</span>';
   input.value=''; focusScan();
 }
 function resetBase(){
@@ -396,11 +418,50 @@ function resetBase(){
   LAST_ROW=null; LAST_SAME=[];
   $("#baseInfo").textContent = 'nenhuma carregada';
   $("#sheetInfo").textContent = '';
-  $("#scan").disabled = true; $("#btnScan").disabled = true; $("#scan").value='';
+  $("#scan").disabled = true; $("#btnScan").disabled = true; $("#btnQR").disabled = true; $("#scan").value='';
   $("#resultLeft").style.display='none';
   $("#resultRight").style.display='none';
   $("#placeholderRight").style.display='block';
   $("#scanMsg").textContent = 'Carregue a planilha para habilitar a busca.';
+  stopQr(); // garante que a câmera pare
+}
+
+/* ========= QR Code ========= */
+async function startQr(){
+  if(qrActive) return;
+  try{
+    // cria reader se não existir
+    if(!qrReader){
+      qrReader = new Html5Qrcode("qrReader");
+    }
+    $("#qrWrap").style.display = "block";
+    qrActive = true;
+
+    const config = { fps: 10, qrbox: (vw, vh)=>({ width: Math.min(320, vw-40), height: Math.min(320, vh-160) }) };
+    await qrReader.start(
+      { facingMode: "environment" }, // câmera traseira no celular
+      config,
+      (decodedText)=>{ // onSuccess
+        $("#scan").value = decodedText;
+        stopQr();        // para a câmera assim que ler
+        handleScan();    // pesquisa o código
+      },
+      (err)=>{ /* onError por frame: ignorar ruídos */ }
+    );
+    $("#scanMsg").innerHTML = '<span class="ok">Câmera ativa. Aponte para o QR.</span>';
+  }catch(e){
+    $("#scanMsg").innerHTML = `<span class="err">Não foi possível acessar a câmera: ${e.message}</span>`;
+    $("#qrWrap").style.display = "none";
+    qrActive = false;
+  }
+}
+async function stopQr(){
+  if(qrReader && qrActive){
+    try{ await qrReader.stop(); }catch(_){}
+  }
+  qrActive = false;
+  $("#qrWrap").style.display = "none";
+  $("#scanMsg").innerHTML = 'Leitura por QR finalizada.';
 }
 
 /* ========= Drag & Drop ========= */
@@ -426,8 +487,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
   $("#scan").addEventListener("keydown", e=>{ if(e.key === "Enter"){ e.preventDefault(); handleScan(); } });
   $("#btnReset").addEventListener("click", resetBase);
 
+  // QR botões
+  $("#btnQR").addEventListener("click", startQr);
+  $("#btnQRStop").addEventListener("click", stopQr);
+
   const last = JSON.parse(localStorage.getItem('last_base_info')||'null');
-  if(last){ $("#baseInfo").textContent = `${last.rows} linhas carregadas (última: ${last.name})`; }
+  if(last){
+    const when = new Date(last.when||Date.now()).toLocaleString();
+    $("#baseInfo").textContent = `${last.rows} linhas carregadas (última: ${last.name} em ${when})`;
+  }
 });
 </script>
 </body>
