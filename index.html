@@ -8,8 +8,6 @@
 
   <!-- SheetJS -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <!-- QR Code (camera) -->
-  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
 
   <style>
     :root{
@@ -88,11 +86,6 @@
     .chipCheck:hover{box-shadow:0 3px 10px rgba(0,0,0,.06)}
     .chipCheck input{display:none}
     .chipCheck input:checked + span{font-weight:800;color:var(--primary)}
-
-    /* Scanner (overlay simples) */
-    #qrWrap{display:none;margin-top:10px}
-    #qrReader{width:100%;max-width:560px;border:2px solid #eee;border-radius:12px;overflow:hidden}
-    #qrControls{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
   </style>
 </head>
 <body>
@@ -120,18 +113,8 @@
       <div class="scanbar">
         <input id="scan" placeholder="Bipe/insira o BRS... (Enter)" autocomplete="off" disabled />
         <button class="btn" id="btnScan" disabled>Bipar</button>
-        <button class="btn ghost" id="btnQR" disabled>Escanear QR</button>
       </div>
       <div id="scanMsg" class="muted" style="margin-top:8px">Carregue a planilha para habilitar a busca.</div>
-
-      <!-- Leitor de QR -->
-      <div id="qrWrap">
-        <div id="qrReader"></div>
-        <div id="qrControls">
-          <button class="btn secondary" id="btnQRStop">Parar câmera</button>
-          <span class="muted" id="qrHint">Aponte a câmera para o QR com o código do BRS.</span>
-        </div>
-      </div>
 
       <div id="resultLeft" style="margin-top:16px; display:none">
         <div class="kpis">
@@ -163,7 +146,7 @@
         </div>
 
         <div style="margin-top:14px">
-          <div class="label-strong">Rotas com o mesmo <span class="chip">Neighborhood</span> (1 por Corridor Cage)</div>
+          <div class="label-strong">Rotas com o mesmo <span class="chip">Neighborhood</span></div>
           <div class="muted" id="sameInfo">—</div>
           <div style="overflow:auto;margin-top:8px">
             <table id="sameTable">
@@ -171,10 +154,9 @@
                 <tr>
                   <th>Corridor Cage</th>
                   <th>Bairro</th>
-                  <th>Planned Vehicle Type</th>
-                  <th>BRS (exemplo)</th>
-                  <th>Endereço</th>
-                  <th>AT</th>
+                  <th>Veículo</th>
+                  <th>Qtd. Pacotes</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -230,9 +212,6 @@ let VEH_FILTER = new Set();
 let LAST_ROW = null;
 let LAST_SAME = [];
 
-let qrReader = null; // html5-qrcode instance
-let qrActive = false;
-
 /* ========= Excel ========= */
 function parseSheetToObjects(ws){
   const json = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
@@ -267,7 +246,6 @@ function normalizeFromExt(row){
 /* ========= Índices ========= */
 function buildIndexes(){
   INDEX_BRS.clear(); INDEX_BAIRRO_CLUSTER.clear();
-  const score = (r)=>{ let s=0; if(r.veiculo) s+=4; if(r.at) s+=2; if(r.endereco) s+=1; return s; };
   for(const r of BASE_ROWS){
     if(r.brs) INDEX_BRS.set(normBRS(r.brs), r);
     if(r.bairro){
@@ -275,8 +253,8 @@ function buildIndexes(){
       if(!INDEX_BAIRRO_CLUSTER.has(keyB)) INDEX_BAIRRO_CLUSTER.set(keyB, new Map());
       const mapC = INDEX_BAIRRO_CLUSTER.get(keyB);
       const keyC = r.rota || '(sem rota)';
-      const current = mapC.get(keyC);
-      if(!current || score(r)>score(current)) mapC.set(keyC, r);
+      if(!mapC.has(keyC)) mapC.set(keyC, []);
+      mapC.get(keyC).push(r);
     }
   }
 }
@@ -337,14 +315,11 @@ async function handleLoad(inputFile){
 
     $("#baseInfo").textContent = `${BASE_ROWS.length} linhas carregadas`;
     $("#sheetInfo").textContent = `Aba usada: ${extName}`;
-    $("#scan").disabled = false; $("#btnScan").disabled = false; $("#btnQR").disabled = false;
-    $("#scanMsg").innerHTML = '<span class="ok">Base carregada! Já pode bipar ou escanear o QR.</span>';
+    $("#scan").disabled = false; $("#btnScan").disabled = false;
+    $("#scanMsg").innerHTML = '<span class="ok">Base carregada! Já pode bipar.</span>';
 
-    // Mensagem clara de confirmação
     const when = new Date().toLocaleString();
-    $("#loadMsg").innerHTML = `<span class="ok">Arquivo "<b>${file.name}</b>" lido e gravado na memória (${BASE_ROWS.length} linhas) em ${when}.</span>`;
-
-    // Salva metadados da última base
+    $("#loadMsg").innerHTML = `<span class="ok">Arquivo "<b>${file.name}</b>" lido (${BASE_ROWS.length} linhas) em ${when}.</span>`;
     localStorage.setItem('last_base_info', JSON.stringify({name:file.name, rows:BASE_ROWS.length, when:Date.now()}));
     focusScan();
   }catch(e){
@@ -353,16 +328,16 @@ async function handleLoad(inputFile){
 }
 
 /* ========= Busca e render ========= */
-function findSameNeighborhoodDedupe(bairro){
+function findSameNeighborhoodGrouped(bairro){
   const key = stripAccents(String(bairro||'').trim());
   const mapC = INDEX_BAIRRO_CLUSTER.get(key);
   if(!mapC) return [];
-  return Array.from(mapC.values());
+  return Array.from(mapC.entries()).map(([cage,rows])=>({cage,rows}));
 }
 function renderResult(row, same){
   const sameFiltered = same
-    .filter(r => (r.rota||'') !== (row.rota||''))
-    .filter(r => !VEH_FILTER.size || VEH_FILTER.has(r.veiculo||''));
+    .filter(g => (g.cage||'') !== (row.rota||''))
+    .filter(g => !VEH_FILTER.size || VEH_FILTER.has(g.rows[0].veiculo||''));
 
   $("#resultLeft").style.display="block";
   $("#resultRight").style.display="block";
@@ -377,19 +352,26 @@ function renderResult(row, same){
   $("#kEndereco").textContent = row.endereco || '—';
 
   const tbody = $("#sameTable tbody"); tbody.innerHTML = "";
-  sameFiltered.forEach(r=>{
+  sameFiltered.forEach(g=>{
+    const count = g.rows.length;
+    let aviso = '';
+    if(count <= 3){
+      aviso = `<span class="err">⚠️ Apenas ${count} pacote(s) (não indicado realocar)</span>`;
+    }else{
+      aviso = `<span class="ok">${count} pacotes</span>`;
+    }
+    const veiculo = g.rows[0].veiculo || '—';
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td><span class="chip">${r.rota||'—'}</span></td>
-                    <td>${r.bairro||'—'}</td>
-                    <td>${r.veiculo||'—'}</td>
-                    <td>${r.brs||'—'}</td>
-                    <td>${r.endereco||'—'}</td>
-                    <td>${r.at||'—'}</td>`;
+    tr.innerHTML = `<td><span class="chip">${g.cage}</span></td>
+                    <td>${row.bairro}</td>
+                    <td>${veiculo}</td>
+                    <td>${count}</td>
+                    <td>${aviso}</td>`;
     tbody.appendChild(tr);
   });
   $("#sameInfo").textContent = sameFiltered.length
-    ? `Encontradas ${sameFiltered.length} rota(s) (Corridor Cage) com o mesmo Neighborhood.`
-    : "Nenhuma outra rota com o mesmo Neighborhood para os filtros selecionados.";
+    ? `Encontradas ${sameFiltered.length} rotas com o mesmo Neighborhood.`
+    : "Nenhuma outra rota com o mesmo Neighborhood.";
 }
 function rerenderSame(){
   if(!LAST_ROW) return;
@@ -406,7 +388,7 @@ function handleScan(){
   const row = INDEX_BRS.get(normBRS(code));
   if(!row){ $("#scanMsg").innerHTML = '<span class="err">Código não encontrado na base.</span>'; input.value=''; focusScan(); return; }
 
-  const same = findSameNeighborhoodDedupe(row.bairro);
+  const same = findSameNeighborhoodGrouped(row.bairro);
   LAST_ROW = row; LAST_SAME = same;
 
   renderResult(row, same);
@@ -418,50 +400,11 @@ function resetBase(){
   LAST_ROW=null; LAST_SAME=[];
   $("#baseInfo").textContent = 'nenhuma carregada';
   $("#sheetInfo").textContent = '';
-  $("#scan").disabled = true; $("#btnScan").disabled = true; $("#btnQR").disabled = true; $("#scan").value='';
+  $("#scan").disabled = true; $("#btnScan").disabled = true; $("#scan").value='';
   $("#resultLeft").style.display='none';
   $("#resultRight").style.display='none';
   $("#placeholderRight").style.display='block';
   $("#scanMsg").textContent = 'Carregue a planilha para habilitar a busca.';
-  stopQr(); // garante que a câmera pare
-}
-
-/* ========= QR Code ========= */
-async function startQr(){
-  if(qrActive) return;
-  try{
-    // cria reader se não existir
-    if(!qrReader){
-      qrReader = new Html5Qrcode("qrReader");
-    }
-    $("#qrWrap").style.display = "block";
-    qrActive = true;
-
-    const config = { fps: 10, qrbox: (vw, vh)=>({ width: Math.min(320, vw-40), height: Math.min(320, vh-160) }) };
-    await qrReader.start(
-      { facingMode: "environment" }, // câmera traseira no celular
-      config,
-      (decodedText)=>{ // onSuccess
-        $("#scan").value = decodedText;
-        stopQr();        // para a câmera assim que ler
-        handleScan();    // pesquisa o código
-      },
-      (err)=>{ /* onError por frame: ignorar ruídos */ }
-    );
-    $("#scanMsg").innerHTML = '<span class="ok">Câmera ativa. Aponte para o QR.</span>';
-  }catch(e){
-    $("#scanMsg").innerHTML = `<span class="err">Não foi possível acessar a câmera: ${e.message}</span>`;
-    $("#qrWrap").style.display = "none";
-    qrActive = false;
-  }
-}
-async function stopQr(){
-  if(qrReader && qrActive){
-    try{ await qrReader.stop(); }catch(_){}
-  }
-  qrActive = false;
-  $("#qrWrap").style.display = "none";
-  $("#scanMsg").innerHTML = 'Leitura por QR finalizada.';
 }
 
 /* ========= Drag & Drop ========= */
@@ -486,10 +429,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   $("#btnScan").addEventListener("click", handleScan);
   $("#scan").addEventListener("keydown", e=>{ if(e.key === "Enter"){ e.preventDefault(); handleScan(); } });
   $("#btnReset").addEventListener("click", resetBase);
-
-  // QR botões
-  $("#btnQR").addEventListener("click", startQr);
-  $("#btnQRStop").addEventListener("click", stopQr);
 
   const last = JSON.parse(localStorage.getItem('last_base_info')||'null');
   if(last){
