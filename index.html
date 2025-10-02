@@ -20,8 +20,9 @@
       background:var(--bg);color:var(--txt);
       font:500 16px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial;
       -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+      display:flex;flex-direction:column;min-height:100vh;
     }
-    .wrap{max-width:1200px;margin:24px auto;padding:0 16px}
+    .wrap{max-width:1200px;margin:24px auto;padding:0 16px;flex:1}
 
     .card{
       background:var(--card);border-radius:16px;
@@ -86,6 +87,17 @@
     .chipCheck:hover{box-shadow:0 3px 10px rgba(0,0,0,.06)}
     .chipCheck input{display:none}
     .chipCheck input:checked + span{font-weight:800;color:var(--primary)}
+
+    /* Rodapé */
+    footer{
+      text-align:center;
+      padding:14px;
+      font-size:14px;
+      color:var(--muted);
+      border-top:1px solid var(--line);
+      margin-top:24px;
+    }
+    footer b{color:var(--primary)}
   </style>
 </head>
 <body>
@@ -169,6 +181,10 @@
     </aside>
   </div>
 </div>
+
+<footer>
+  Criado por <b>Richard Lucas – LSP 12 Adriana</b>
+</footer>
 
 <script>
 /* ========= Utilidades ========= */
