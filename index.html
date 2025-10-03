@@ -138,6 +138,46 @@
     .log li{font-size:12.5px;color:#555}
     .log li .when{color:#888;margin-left:4px}
 
+    /* ===== TOAST CENTRAL ===== */
+    .toast-center{
+      position:fixed;left:50%;top:50%;
+      transform:translate(-50%,-50%) scale(.94);
+      z-index:80;display:flex;flex-direction:column;align-items:center;gap:6px;
+      background:#fff;border:1px solid var(--line);
+      padding:16px 18px;border-radius:16px;
+      box-shadow:0 12px 30px rgba(0,0,0,.14);
+      animation:toast-pop .9s ease-in-out forwards;
+    }
+    .toast-center .icon{ width:56px;height:56px;display:block;filter: drop-shadow(0 6px 14px rgba(0,0,0,.18)); }
+    .toast-center .title{ font-weight:900; letter-spacing:.2px; }
+    .toast-success .title{ color:var(--ok); }
+    .toast-error .title{ color:var(--err); }
+    .toast-center .subtitle{ font-size:12px; color:var(--muted); }
+    @keyframes toast-pop{
+      0%   { opacity:0; transform:translate(-50%,-50%) scale(.92) }
+      15%  { opacity:1; transform:translate(-50%,-50%) scale(1.02) }
+      60%  { opacity:1; transform:translate(-50%,-50%) scale(1.0) }
+      100% { opacity:0; transform:translate(-50%,-54%) scale(.98) }
+    }
+
+    /* ===== Overlay de carregamento ===== */
+    .loading-overlay{
+      position:fixed; inset:0; z-index:70;
+      background:rgba(255,255,255,.8); backdrop-filter:blur(2px);
+      display:none; align-items:center; justify-content:center;
+    }
+    .loading-box{
+      background:#fff; border:1px solid var(--line); border-radius:16px;
+      padding:16px 18px; box-shadow:var(--shadow-md); display:flex; gap:12px; align-items:center;
+      font-weight:900;
+    }
+    .spinner{
+      width:22px; height:22px; border-radius:50%;
+      border:3px solid #eee; border-top-color: var(--primary);
+      animation:spin .9s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
     /* FAB Ajuda */
     .fab{
       position:fixed;right:18px;bottom:18px;z-index:40;
@@ -269,6 +309,15 @@
   Criado por <b>Richard Lucas – LSP 12 Adriana</b>
 </footer>
 
+<!-- Overlays -->
+<div id="toastRoot"></div>
+<div id="loading" class="loading-overlay">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <div id="loadingMsg">Lendo arquivo…</div>
+  </div>
+</div>
+
 <!-- ========= Modals ========= -->
 <div id="overlay" class="modal-overlay">
   <!-- info modal -->
@@ -365,16 +414,77 @@ function sendLogKey(){ return LS_SENDLOG + (currentEmail || 'anon'); }
 function lastSheetKey(){ return LS_LAST_SHEET + (currentEmail || 'anon'); }
 function onboardingKey(){ return ONBOARD_KEY + (currentEmail || 'anon'); }
 
-function saveHistory(){
-  try{ localStorage.setItem(storageKey(), JSON.stringify(SELECTED)); }catch(_){}
+/* ====== Utils/UI ====== */
+const $ = s => document.querySelector(s);
+function focusScan(){ setTimeout(()=>$("#scan").focus(), 0); }
+function showLoading(msg='Carregando…'){ const el=$("#loading"); $("#loadingMsg").textContent=msg; el.style.display='flex'; }
+function hideLoading(){ $("#loading").style.display='none'; }
+function showToastCenter({ok=true, title, subtitle}){
+  const root = document.getElementById('toastRoot');
+  const box = document.createElement('div');
+  box.className = `toast-center ${ok?'toast-success':'toast-error'}`;
+
+  const img = document.createElement('img');
+  const svg = ok
+    ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#18a957"/><path d="M18 34l9 9 19-20" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+    : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#d7263d"/><path d="M22 22l20 20M42 22L22 42" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>`;
+  img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+  img.className = 'icon';
+  img.alt = ok ? 'Sucesso' : 'Erro';
+
+  const t = document.createElement('div'); t.className='title'; t.textContent = title || (ok?'Sucesso':'Erro');
+  const s = document.createElement('div'); s.className='subtitle'; s.textContent = subtitle || '';
+
+  box.appendChild(img); box.appendChild(t); if(subtitle) box.appendChild(s);
+  root.appendChild(box);
+  box.addEventListener('animationend', ()=> box.remove());
 }
+
+/* Sons curtos */
+function playAddedSound(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator(); const g = ctx.createGain(); const now = ctx.currentTime;
+    o.type='triangle'; o.frequency.setValueAtTime(880, now); o.frequency.exponentialRampToValueAtTime(1320, now+0.12);
+    g.gain.setValueAtTime(0.0001, now); g.gain.exponentialRampToValueAtTime(0.25, now+0.02); g.gain.exponentialRampToValueAtTime(0.0001, now+0.18);
+    o.connect(g).connect(ctx.destination); o.start(); o.stop(now+0.2);
+  }catch(_){}
+}
+function playErrorSound(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator(); const g = ctx.createGain(); const now = ctx.currentTime;
+    o.type='square'; o.frequency.setValueAtTime(300, now); o.frequency.exponentialRampToValueAtTime(160, now+0.15);
+    g.gain.setValueAtTime(0.25, now); g.gain.exponentialRampToValueAtTime(0.0001, now+0.2);
+    o.connect(g).connect(ctx.destination); o.start(); o.stop(now+0.22);
+  }catch(_){}
+}
+
+/* ====== Modal helpers ====== */
+const overlay = $("#overlay");
+const infoModal = $("#infoModal");
+const infoBody = $("#infoBody");
+const sheetsModal = $("#sheetsModal");
+const askModal = $("#askModal");
+const tutModal = $("#tutModal");
+function openModal(which){
+  overlay.style.display = 'flex';
+  [infoModal, sheetsModal, askModal, tutModal].forEach(x=>x.classList.add('hidden'));
+  which.classList.remove('hidden');
+}
+function closeModal(){ overlay.style.display = 'none'; }
+function showInfo(title, html){
+  $("#infoTitle").textContent = title || 'Informação';
+  infoBody.innerHTML = html || '';
+  openModal(infoModal);
+}
+
+/* ====== Persistência / Histórico ====== */
+function saveHistory(){ try{ localStorage.setItem(storageKey(), JSON.stringify(SELECTED)); }catch(_){} }
 function loadHistoryForCurrentUser(){
   try{
     const raw = localStorage.getItem(storageKey());
-    if(raw){
-      SELECTED = Array.isArray(JSON.parse(raw)) ? JSON.parse(raw) : [];
-      renderSelections();
-    }
+    if(raw){ SELECTED = Array.isArray(JSON.parse(raw)) ? JSON.parse(raw) : []; renderSelections(); }
   }catch(_){}
   renderSendLog();
   maybeShowOnboarding();
@@ -399,9 +509,7 @@ function renderSendLog(){
       li.innerHTML = `<b>${e.count}</b> itens → <span class="chip">${e.sheetTitle||'?'}</span> <span class="muted">@ ${e.spreadsheetId.slice(0,8)}…</span> <span class="when">${new Date(e.when).toLocaleString()}</span>`;
       ul.appendChild(li);
     }
-  }catch(_){
-    ul.innerHTML = '<li class="muted">Nenhum envio ainda.</li>';
-  }
+  }catch(_){ ul.innerHTML = '<li class="muted">Nenhum envio ainda.</li>'; }
 }
 
 /* ====== OAuth init ====== */
@@ -413,7 +521,6 @@ window.onload = () => {
       callback: async (resp) => {
         if (resp.error) { showInfo('Erro OAuth', 'Erro: ' + resp.error); return; }
         accessToken = resp.access_token;
-
         try{
           if (ENFORCE_SHOPEE) await gatekeepShopee(accessToken);
           currentEmail = await getUserEmail(accessToken);
@@ -421,26 +528,19 @@ window.onload = () => {
         }catch(e){
           showInfo('Acesso negado', e.message || e);
           google.accounts.oauth2.revoke(accessToken);
-          accessToken = null;
-          currentEmail = null;
-          return;
+          accessToken = null; currentEmail = null;
         }
       }
     });
   }
 };
-
 async function ensureAuth(){
   if (!tokenClient) {
     if (!window.google || !google.accounts || !google.accounts.oauth2) {
       showInfo('Aguarde', 'Google Identity ainda não carregou. Tente novamente em 1–2 segundos.');
       throw new Error('GIS não carregado');
     }
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: () => {}
-    });
+    tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: () => {} });
   }
   if (accessToken) return true;
 
@@ -455,28 +555,22 @@ async function ensureAuth(){
         resolve(true);
       } catch (e) {
         google.accounts.oauth2.revoke(accessToken);
-        accessToken = null;
-        currentEmail = null;
+        accessToken = null; currentEmail = null;
         reject(e);
       }
     };
     tokenClient.requestAccessToken({ prompt: 'consent' });
   });
 }
-
 async function getUserEmail(token){
-  const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${token}` } });
   if (!r.ok) throw new Error('Falha ao obter userinfo');
   const data = await r.json();
   return String(data.email||'').toLowerCase();
 }
 async function gatekeepShopee(token){
   const email = await getUserEmail(token);
-  if (!email.endsWith('@shopee.com')) {
-    throw new Error('Acesso permitido apenas para contas @shopee.com');
-  }
+  if (!email.endsWith('@shopee.com')) throw new Error('Acesso permitido apenas para contas @shopee.com');
 }
 
 /* ========= Utilidades ========= */
@@ -484,86 +578,6 @@ const stripAccents = (s='') => String(s).normalize('NFD').replace(/\p{Diacritic}
 const norm = (s='') => stripAccents(String(s).trim()).toLowerCase();
 const normBRS = (s='') => String(s).toUpperCase().replace(/[^A-Z0-9]/g,'');
 const isExcel = f => /\.(xlsx|xls)$/i.test(f?.name||'');
-const $ = s => document.querySelector(s);
-function focusScan(){ setTimeout(()=>$("#scan").focus(), 0); }
-
-/* ========= Modal helpers ========= */
-const overlay = $("#overlay");
-const infoModal = $("#infoModal");
-const sheetsModal = $("#sheetsModal");
-const askModal = $("#askModal");
-const tutModal = $("#tutModal");
-function openModal(which){
-  overlay.style.display = 'flex';
-  [infoModal, sheetsModal, askModal, tutModal].forEach(x=>x.classList.add('hidden'));
-  which.classList.remove('hidden');
-}
-function closeModal(){
-  overlay.style.display = 'none';
-}
-function showInfo(title, html){
-  $("#infoTitle").textContent = title || 'Informação';
-  $("#infoBody").innerHTML = html || '';
-  openModal(infoModal);
-}
-
-/* ========= Tutorial ========= */
-const TUTORIAL_STEPS = [
-  {
-    t:'1) Carregar planilha',
-    h:`Use <b>Arraste ou clique</b> e o botão <b>Carregar planilha</b>. 
-       Por padrão usamos a aba <b>Planilha1</b> (ou a primeira).`
-  },
-  {
-    t:'2) Buscar um BRS',
-    h:`No campo de busca, <b>bipe</b> ou digite o BRS e pressione Enter. 
-       À esquerda aparecem os <b>detalhes</b> (BRS, Rota, Bairro, Veículo, AT) e o <b>endereço</b>.`
-  },
-  {
-    t:'3) Rotas do mesmo bairro',
-    h:`À direita listamos as <b>rotas com o mesmo Neighborhood</b>. 
-       Use os filtros por <b>Planned Vehicle Type</b>. 
-       Quando houver <b>poucos pacotes</b> em uma rota, aparece um aviso ⚠️.`
-  },
-  {
-    t:'4) Adicionar e revisar',
-    h:`Clique em <b>Adicionar nesta rota</b> para montar a realocação. 
-       A tabela <b>Realocações selecionadas</b> mantém os itens. 
-       Você pode <b>remover</b> ou <b>limpar</b> quando quiser e os itens ficam salvos no seu navegador (por usuário).`
-  },
-  {
-    t:'5) Exportar ou Enviar para Sheets',
-    h:`Use <b>Exportar (.xlsx)</b> para baixar. 
-       Ou <b>Enviar p/ Sheets</b>: cole a URL, selecione a <b>aba</b> e a <b>célula inicial</b>. 
-       Enviamos <b>somente BR e AT</b> (sem cabeçalho). 
-       O histórico de envios fica registrado no final da página.`
-  },
-  {
-    t:'6) Permissões úteis',
-    h:`Para enviar, a planilha deve permitir edição para a sua conta. 
-       A listagem de abas exige <b>leitura</b> da planilha. 
-       O acesso pode ser restrito a <code>@shopee.com</code> (configurável).`
-  }
-];
-let tutIndex = 0;
-function renderTut(){
-  const body = $("#tutBody");
-  const dots = $("#tutDots");
-  const step = TUTORIAL_STEPS[tutIndex];
-  body.innerHTML = `<h3 style="margin-bottom:6px">${step.t}</h3><p>${step.h}</p>`;
-  dots.innerHTML = TUTORIAL_STEPS.map((_,i)=>`<span class="dot ${i===tutIndex?'active':''}"></span>`).join('');
-  $("#btnTutPrev").style.visibility = tutIndex===0?'hidden':'visible';
-  $("#btnTutNext").style.display = tutIndex===TUTORIAL_STEPS.length-1?'none':'inline-block';
-  $("#btnTutDone").style.display = tutIndex===TUTORIAL_STEPS.length-1?'inline-block':'none';
-}
-function openAsk(){ openModal(askModal); }
-function openTut(){ tutIndex=0; renderTut(); openModal(tutModal); }
-function finishTut(){ try{ localStorage.setItem(onboardingKey(),'1'); }catch(_){ } closeModal(); }
-function maybeShowOnboarding(){
-  try{
-    if(!localStorage.getItem(onboardingKey())) openAsk();
-  }catch(_){ openAsk(); }
-}
 
 /* ========= Mapeamento/normalização ========= */
 const COLS_EXT = {
@@ -691,7 +705,7 @@ async function handleLoad(inputFile){
   const file = inputFile || $("#file").files[0];
   if(!file){ showInfo('Arquivo', 'Selecione um arquivo <b>.xlsx</b>.'); return; }
   if(!isExcel(file)){ showInfo('Arquivo inválido', 'Use arquivos <b>.xlsx</b> ou <b>.xls</b>.'); return; }
-  $("#loadMsg").textContent = 'Lendo arquivo...';
+  showLoading('Lendo arquivo...');
 
   try{
     const buf = await file.arrayBuffer();
@@ -712,8 +726,13 @@ async function handleLoad(inputFile){
     const when = new Date().toLocaleString();
     $("#loadMsg").innerHTML = `<span class="ok">Arquivo "<b>${file.name}</b>" lido (${BASE_ROWS.length} linhas) em ${when}.</span>`;
     localStorage.setItem(LS_LAST_BASE, JSON.stringify({name:file.name, rows:BASE_ROWS.length, when:Date.now()}));
+
+    hideLoading();
+    showToastCenter({ok:true, title:'Pacotes prontos', subtitle:'Base carregada'});
     focusScan();
   }catch(e){
+    hideLoading();
+    showToastCenter({ok:false, title:'Falha ao ler o Excel'});
     showInfo('Falha ao ler o Excel', e.message);
   }
 }
@@ -761,10 +780,8 @@ function renderResult(row, same){
     const qtdNoBairro = g.rows.length;
     const veiculo = g.rows[0].veiculo || '—';
     const isFiorino = /fiorino/i.test(veiculo);
-
     const totalCage = INDEX_TOTAL_BY_CAGE.get(g.cage) || qtdNoBairro;
 
-    // Aviso quando poucos pacotes
     let statusHtml = '';
     if(qtdNoBairro <= 3 && !isFiorino){
       statusHtml = `<span class="warn-badge" title="Poucos pacotes neste bairro">⚠️ ${qtdNoBairro} <small>(poucos)</small></span>`;
@@ -781,10 +798,19 @@ function renderResult(row, same){
       <td>${statusHtml}</td>
       <td><button class="btn small" data-cage="${g.cage}">Adicionar nesta rota</button></td>
     `;
-    tr.querySelector('button').addEventListener('click', ()=>{
+    const btn = tr.querySelector('button');
+    btn.addEventListener('click', ()=>{
       if(!LAST_ROW) return;
       const atTarget = pickRepresentativeAT(g.rows);
-      addSelection({ brs: LAST_ROW.brs, at: atTarget, rota: g.cage });
+      const ok = addSelection({ brs: LAST_ROW.brs, at: atTarget, rota: g.cage });
+      if(ok){
+        showToastCenter({ok:true, title:'Pacote adicionado', subtitle:`${LAST_ROW.brs} → ${atTarget}`});
+        playAddedSound();
+        if (navigator.vibrate) { try{ navigator.vibrate(10); }catch(_){} }
+      }else{
+        showToastCenter({ok:false, title:'Duplicado', subtitle:'BR já nesta AT'});
+        playErrorSound();
+      }
     });
     tbody.appendChild(tr);
   });
@@ -820,10 +846,18 @@ function renderSelections(){
   });
   $("#selInfo").textContent = SELECTED.length ? `${SELECTED.length} item(ns)` : 'Sem itens.';
 }
+
+/* BLOQUEIO: BR não pode repetir na mesma AT */
 function addSelection({brs, at, rota}){
+  const exists = SELECTED.some(it =>
+    normBRS(it.brs) === normBRS(brs) &&
+    String(it.at||'').trim() === String(at||'').trim()
+  );
+  if(exists){ return false; }
   SELECTED.push({brs, at, rota});
   saveHistory();
   renderSelections();
+  return true;
 }
 function clearSelections(){
   SELECTED = [];
@@ -892,7 +926,6 @@ async function listTabsFromUrl(){
     select.innerHTML = sheets.map(t => `<option value="${t}">${t}</option>`).join('');
     select.disabled = false;
 
-    // Tenta lembrar a última aba usada
     try{
       const last = JSON.parse(localStorage.getItem(lastSheetKey())||'null');
       if(last && last.spreadsheetId === spreadsheetId && sheets.includes(last.sheetTitle)){
@@ -912,7 +945,6 @@ function openSheetsModal(){
   $("#sheetTab").disabled = true;
   $("#startCell").value = 'A1';
 
-  // Prefill com último uso deste usuário (se existir)
   try{
     const last = JSON.parse(localStorage.getItem(lastSheetKey())||'null');
     if(last){
@@ -942,38 +974,28 @@ async function doSendToSheets(){
     return;
   }
 
-  // Persistir última escolha
   try{
-    localStorage.setItem(lastSheetKey(), JSON.stringify({
-      url: link, spreadsheetId, sheetTitle, startCell
-    }));
+    localStorage.setItem(lastSheetKey(), JSON.stringify({ url: link, spreadsheetId, sheetTitle, startCell }));
   }catch(_){}
 
   const range = `${sheetTitle}!${startCell}`;
   const values = SELECTED.map(it=>[it.brs||'', it.at||'']); // sem cabeçalho
 
-  const apiUrl =
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}` +
-    `/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+  const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
 
   try{
     const res = await fetch(apiUrl, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ values })
     });
-    if(!res.ok){
-      const txt = await res.text();
-      throw new Error(txt);
-    }
+    if(!res.ok){ const txt = await res.text(); throw new Error(txt); }
     closeModal();
-    showInfo('Sucesso', 'Enviado com sucesso para o Sheets!');
+    showToastCenter({ok:true, title:'Enviado!', subtitle:'Dados enviados ao Sheets'});
     appendSendLog({ when: Date.now(), count: values.length, spreadsheetId, sheetTitle });
   }catch(err){
     console.error(err);
+    showToastCenter({ok:false, title:'Falha ao enviar'});
     showInfo('Falha ao enviar', 'Verifique permissões e se a API do Sheets está ativa.<br><small>'+ (err?.message||err) +'</small>');
   }
 }
@@ -1009,7 +1031,7 @@ function resetBase(){
   clearSelections();
 }
 
-/* ========= Drag & Drop ========= */
+/* ========= Drag & Drop + Auto load ========= */
 (function setupDnd(){
   const dz = document.getElementById('dropzone');
   const input = document.getElementById('file');
@@ -1023,9 +1045,15 @@ function resetBase(){
     const f = e.dataTransfer?.files?.[0];
     if(f){ input.files = e.dataTransfer.files; handleLoad(f); }
   });
+
+  /* Auto: ao selecionar arquivo, já carrega com overlay */
+  input.addEventListener('change', (e)=>{
+    const f = e.target.files?.[0];
+    if(f) handleLoad(f);
+  });
 })();
 
-/* ========= Listeners ========= */
+/* ========= Onboarding & Listeners ========= */
 document.addEventListener('DOMContentLoaded', ()=>{
   $("#btnLoad").addEventListener("click", ()=>handleLoad());
   $("#btnScan").addEventListener("click", handleScan);
@@ -1037,10 +1065,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // Abre modal de envio
   $("#btnSendSheets").addEventListener("click", openSheetsModal);
-  // Quando colar a URL, lista abas
   $("#sheetUrl").addEventListener("change", listTabsFromUrl);
   $("#sheetUrl").addEventListener("blur", listTabsFromUrl);
-  // Confirma envio a partir do modal
   $("#btnDoSend").addEventListener("click", doSendToSheets);
 
   // Onboarding
@@ -1059,10 +1085,36 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const last = JSON.parse(localStorage.getItem(LS_LAST_BASE) || 'null');
   if (last) {
     const when = new Date(last.when || Date.now()).toLocaleString();
-    $("#baseInfo").textContent =
-      `${last.rows} linhas carregadas (última: ${last.name} em ${when})`;
+    $("#baseInfo").textContent = `${last.rows} linhas carregadas (última: ${last.name} em ${when})`;
   }
 });
+
+/* ===== Tutorial ===== */
+const TUTORIAL_STEPS = [
+  { t:'1) Carregar planilha', h:`Use <b>Arraste ou clique</b> e o botão <b>Carregar planilha</b>. Por padrão usamos a aba <b>Planilha1</b> (ou a primeira).` },
+  { t:'2) Buscar um BRS', h:`No campo de busca, <b>bipe</b> ou digite o BRS e pressione Enter. À esquerda aparecem os <b>detalhes</b> (BRS, Rota, Bairro, Veículo, AT) e o <b>endereço</b>.` },
+  { t:'3) Rotas do mesmo bairro', h:`À direita listamos as <b>rotas com o mesmo Neighborhood</b>. Use os filtros por <b>Planned Vehicle Type</b>. Quando houver <b>poucos pacotes</b> em uma rota, aparece um aviso ⚠️.` },
+  { t:'4) Adicionar e revisar', h:`Clique em <b>Adicionar nesta rota</b> para montar a realocação. A tabela <b>Realocações selecionadas</b> mantém os itens. Você pode <b>remover</b> ou <b>limpar</b>; os itens ficam salvos por usuário.` },
+  { t:'5) Exportar ou Enviar para Sheets', h:`Use <b>Exportar (.xlsx)</b> ou <b>Enviar p/ Sheets</b>. Enviamos <b>somente BR e AT</b> (sem cabeçalho). O histórico de envios fica no final.` },
+  { t:'6) Permissões úteis', h:`Para enviar, a planilha deve permitir edição para a sua conta. A listagem de abas exige leitura. O acesso pode ser restrito a <code>@shopee.com</code>.` }
+];
+let tutIndex = 0;
+function renderTut(){
+  const body = $("#tutBody");
+  const dots = $("#tutDots");
+  const step = TUTORIAL_STEPS[tutIndex];
+  body.innerHTML = `<h3 style="margin-bottom:6px">${step.t}</h3><p>${step.h}</p>`;
+  dots.innerHTML = TUTORIAL_STEPS.map((_,i)=>`<span class="dot ${i===tutIndex?'active':''}"></span>`).join('');
+  $("#btnTutPrev").style.visibility = tutIndex===0?'hidden':'visible';
+  $("#btnTutNext").style.display = tutIndex===TUTORIAL_STEPS.length-1?'none':'inline-block';
+  $("#btnTutDone").style.display = tutIndex===TUTORIAL_STEPS.length-1?'inline-block':'none';
+}
+function openAsk(){ openModal(askModal); }
+function openTut(){ tutIndex=0; renderTut(); openModal(tutModal); }
+function finishTut(){ try{ localStorage.setItem(onboardingKey(),'1'); }catch(_){ } closeModal(); }
+function maybeShowOnboarding(){
+  try{ if(!localStorage.getItem(onboardingKey())) openAsk(); }catch(_){ openAsk(); }
+}
 </script>
 </body>
 </html>
