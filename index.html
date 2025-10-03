@@ -126,6 +126,11 @@
     .hidden{display:none}
     .warn-badge{color:#d7263d;font-weight:900}
 
+    /* Dots do tutorial */
+    .dots{display:flex;gap:6px;justify-content:center;margin-top:8px}
+    .dot{width:8px;height:8px;border-radius:999px;background:#ddd}
+    .dot.active{background:var(--primary)}
+
     /* Bloco histórico de envios */
     .log{margin-top:8px;border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
     .log h4{font-size:13px;font-weight:900;margin-bottom:6px;color:#444}
@@ -133,20 +138,13 @@
     .log li{font-size:12.5px;color:#555}
     .log li .when{color:#888;margin-left:4px}
 
-    /* ===== Efeito visual de adição ===== */
-    .added-fx{
-      position:fixed; /* usa viewport pra não quebrar em containers com overflow */
-      width:42px;height:42px;z-index:60;
-      pointer-events:none;
-      animation:fx-pop-fly .6s ease-out forwards;
-      filter: drop-shadow(0 6px 14px rgba(0,0,0,.18));
+    /* FAB Ajuda */
+    .fab{
+      position:fixed;right:18px;bottom:18px;z-index:40;
+      background:var(--primary);color:#fff;border:0;border-radius:999px;
+      padding:12px 16px;font-weight:900;box-shadow:0 10px 25px rgba(255,87,34,.35);cursor:pointer
     }
-    @keyframes fx-pop-fly{
-      0%   { opacity:0; transform:scale(.6) translateY(6px); }
-      15%  { opacity:1; transform:scale(1.05) translateY(0); }
-      60%  { opacity:1; transform:scale(1) translateY(-14px); }
-      100% { opacity:0; transform:scale(.94) translateY(-26px); }
-    }
+    .fab:hover{background:var(--primary-2)}
   </style>
 </head>
 <body>
@@ -159,7 +157,10 @@
       <input id="file" type="file" accept=".xlsx,.xls" style="display:none" />
       <button class="btn" id="btnLoad">Carregar planilha</button>
       <button class="btn secondary" id="btnReset" title="Limpa base e resultados">Limpar base</button>
-      <div id="loadMsg" class="muted">Aba padrão: <b>Planilha1</b></div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn ghost small" id="btnHelp" title="Como usar">Ajuda</button>
+        <div id="loadMsg" class="muted">Aba padrão: <b>Planilha1</b></div>
+      </div>
     </div>
   </section>
 
@@ -310,7 +311,36 @@
       <button class="btn" id="btnDoSend">Enviar</button>
     </footer>
   </div>
+
+  <!-- ONBOARDING: pergunta -->
+  <div id="askModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="askTitle">
+    <header id="askTitle">Você já sabe usar o site?</header>
+    <div class="content">
+      <p>Se você já conhece o fluxo, pode ir direto. Se preferir, te mostro um passo-a-passo curto (menos de 1 minuto).</p>
+    </div>
+    <footer>
+      <button class="btn cancel" id="btnAskYes">Sim, já sei</button>
+      <button class="btn" id="btnAskNo">Não, quero o tutorial</button>
+    </footer>
+  </div>
+
+  <!-- ONBOARDING: tutorial -->
+  <div id="tutModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tutTitle">
+    <header id="tutTitle">Como usar – passo a passo</header>
+    <div class="content">
+      <div id="tutBody"></div>
+      <div class="dots" id="tutDots"></div>
+    </div>
+    <footer>
+      <button class="btn cancel" id="btnTutPrev">Voltar</button>
+      <button class="btn secondary" id="btnTutDone" style="display:none">Concluir</button>
+      <button class="btn" id="btnTutNext">Próximo</button>
+    </footer>
+  </div>
 </div>
+
+<!-- FAB (atalho) -->
+<button class="fab" id="fabHelp" title="Tutorial">Ajuda</button>
 
 <script>
 /* ====== OAuth (GIS) ====== */
@@ -328,10 +358,12 @@ const LS_SENDLOG = 'spr_realloc_sendlog_';
 const LS_LAST_SHEET = 'spr_realloc_last_sheet_';
 const LS_VEH = 'veh_filter';
 const LS_LAST_BASE = 'last_base_info';
+const ONBOARD_KEY = 'spr_onboarding_done_';
 
 function storageKey(){ return LS_PREFIX + (currentEmail || 'anon'); }
 function sendLogKey(){ return LS_SENDLOG + (currentEmail || 'anon'); }
 function lastSheetKey(){ return LS_LAST_SHEET + (currentEmail || 'anon'); }
+function onboardingKey(){ return ONBOARD_KEY + (currentEmail || 'anon'); }
 
 function saveHistory(){
   try{ localStorage.setItem(storageKey(), JSON.stringify(SELECTED)); }catch(_){}
@@ -345,6 +377,7 @@ function loadHistoryForCurrentUser(){
     }
   }catch(_){}
   renderSendLog();
+  maybeShowOnboarding();
 }
 function appendSendLog(entry){
   try{
@@ -457,11 +490,12 @@ function focusScan(){ setTimeout(()=>$("#scan").focus(), 0); }
 /* ========= Modal helpers ========= */
 const overlay = $("#overlay");
 const infoModal = $("#infoModal");
-const infoBody = $("#infoBody");
 const sheetsModal = $("#sheetsModal");
+const askModal = $("#askModal");
+const tutModal = $("#tutModal");
 function openModal(which){
   overlay.style.display = 'flex';
-  [infoModal, sheetsModal].forEach(x=>x.classList.add('hidden'));
+  [infoModal, sheetsModal, askModal, tutModal].forEach(x=>x.classList.add('hidden'));
   which.classList.remove('hidden');
 }
 function closeModal(){
@@ -469,8 +503,66 @@ function closeModal(){
 }
 function showInfo(title, html){
   $("#infoTitle").textContent = title || 'Informação';
-  infoBody.innerHTML = html || '';
+  $("#infoBody").innerHTML = html || '';
   openModal(infoModal);
+}
+
+/* ========= Tutorial ========= */
+const TUTORIAL_STEPS = [
+  {
+    t:'1) Carregar planilha',
+    h:`Use <b>Arraste ou clique</b> e o botão <b>Carregar planilha</b>. 
+       Por padrão usamos a aba <b>Planilha1</b> (ou a primeira).`
+  },
+  {
+    t:'2) Buscar um BRS',
+    h:`No campo de busca, <b>bipe</b> ou digite o BRS e pressione Enter. 
+       À esquerda aparecem os <b>detalhes</b> (BRS, Rota, Bairro, Veículo, AT) e o <b>endereço</b>.`
+  },
+  {
+    t:'3) Rotas do mesmo bairro',
+    h:`À direita listamos as <b>rotas com o mesmo Neighborhood</b>. 
+       Use os filtros por <b>Planned Vehicle Type</b>. 
+       Quando houver <b>poucos pacotes</b> em uma rota, aparece um aviso ⚠️.`
+  },
+  {
+    t:'4) Adicionar e revisar',
+    h:`Clique em <b>Adicionar nesta rota</b> para montar a realocação. 
+       A tabela <b>Realocações selecionadas</b> mantém os itens. 
+       Você pode <b>remover</b> ou <b>limpar</b> quando quiser e os itens ficam salvos no seu navegador (por usuário).`
+  },
+  {
+    t:'5) Exportar ou Enviar para Sheets',
+    h:`Use <b>Exportar (.xlsx)</b> para baixar. 
+       Ou <b>Enviar p/ Sheets</b>: cole a URL, selecione a <b>aba</b> e a <b>célula inicial</b>. 
+       Enviamos <b>somente BR e AT</b> (sem cabeçalho). 
+       O histórico de envios fica registrado no final da página.`
+  },
+  {
+    t:'6) Permissões úteis',
+    h:`Para enviar, a planilha deve permitir edição para a sua conta. 
+       A listagem de abas exige <b>leitura</b> da planilha. 
+       O acesso pode ser restrito a <code>@shopee.com</code> (configurável).`
+  }
+];
+let tutIndex = 0;
+function renderTut(){
+  const body = $("#tutBody");
+  const dots = $("#tutDots");
+  const step = TUTORIAL_STEPS[tutIndex];
+  body.innerHTML = `<h3 style="margin-bottom:6px">${step.t}</h3><p>${step.h}</p>`;
+  dots.innerHTML = TUTORIAL_STEPS.map((_,i)=>`<span class="dot ${i===tutIndex?'active':''}"></span>`).join('');
+  $("#btnTutPrev").style.visibility = tutIndex===0?'hidden':'visible';
+  $("#btnTutNext").style.display = tutIndex===TUTORIAL_STEPS.length-1?'none':'inline-block';
+  $("#btnTutDone").style.display = tutIndex===TUTORIAL_STEPS.length-1?'inline-block':'none';
+}
+function openAsk(){ openModal(askModal); }
+function openTut(){ tutIndex=0; renderTut(); openModal(tutModal); }
+function finishTut(){ try{ localStorage.setItem(onboardingKey(),'1'); }catch(_){ } closeModal(); }
+function maybeShowOnboarding(){
+  try{
+    if(!localStorage.getItem(onboardingKey())) openAsk();
+  }catch(_){ openAsk(); }
 }
 
 /* ========= Mapeamento/normalização ========= */
@@ -639,66 +731,6 @@ function pickRepresentativeAT(rows){
   return best || (rows[0]?.at || '');
 }
 
-/* ======== EFEITO VISUAL + SOM AO ADICIONAR ======== */
-/* SVG de check em data-URI (leve, sem dependências) */
-const CHECK_SVG_DATAURI =
-  'data:image/svg+xml;utf8,' +
-  encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-    <defs><filter id="s"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".25"/></filter></defs>
-    <circle cx="32" cy="32" r="30" fill="#ff5722"/>
-    <path d="M18 34l9 9 19-20" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`);
-
-/* mostra a figurinha perto do botão e some */
-function showAddedFx(anchorEl){
-  try{
-    const rect = anchorEl.getBoundingClientRect();
-    const img = document.createElement('img');
-    img.src = CHECK_SVG_DATAURI;
-    img.className = 'added-fx';
-
-    // posição: um pouco acima e à esquerda do botão
-    const size = 42;
-    const x = rect.left + window.scrollX + rect.width - size - 6;
-    const y = rect.top  + window.scrollY - size/2;
-
-    img.style.left = `${x}px`;
-    img.style.top  = `${y}px`;
-
-    document.body.appendChild(img);
-    img.addEventListener('animationend', ()=> img.remove());
-  }catch(_){}
-}
-
-/* som pop curto (WebAudio, sem arquivo externo) */
-function playAddedSound(){
-  try{
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-
-    o.type = 'triangle';
-    const now = ctx.currentTime;
-    o.frequency.setValueAtTime(880, now);              // A5
-    o.frequency.exponentialRampToValueAtTime(1320, now + 0.12); // sobe um pouco
-
-    g.gain.setValueAtTime(0.0001, now);
-    g.gain.exponentialRampToValueAtTime(0.25, now + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-
-    o.connect(g).connect(ctx.destination);
-    o.start();
-    o.stop(now + 0.2);
-  }catch(_){}
-}
-
-/* chamado após adicionar */
-function celebrateAdd(anchorEl){
-  showAddedFx(anchorEl);
-  playAddedSound();
-  if (navigator.vibrate) { try{ navigator.vibrate(10); }catch(_){} }
-}
-
 /* ========= Busca e render ========= */
 function findSameNeighborhoodGrouped(bairro){
   const key = stripAccents(String(bairro||'').trim());
@@ -749,12 +781,10 @@ function renderResult(row, same){
       <td>${statusHtml}</td>
       <td><button class="btn small" data-cage="${g.cage}">Adicionar nesta rota</button></td>
     `;
-    const btn = tr.querySelector('button');
-    btn.addEventListener('click', ()=>{
+    tr.querySelector('button').addEventListener('click', ()=>{
       if(!LAST_ROW) return;
       const atTarget = pickRepresentativeAT(g.rows);
       addSelection({ brs: LAST_ROW.brs, at: atTarget, rota: g.cage });
-      celebrateAdd(btn); // <<< efeito visual + som
     });
     tbody.appendChild(tr);
   });
@@ -920,9 +950,7 @@ async function doSendToSheets(){
   }catch(_){}
 
   const range = `${sheetTitle}!${startCell}`;
-
-  // Apenas os dados (sem cabeçalho)
-  const values = SELECTED.map(it=>[it.brs||'', it.at||'']);
+  const values = SELECTED.map(it=>[it.brs||'', it.at||'']); // sem cabeçalho
 
   const apiUrl =
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}` +
@@ -943,8 +971,6 @@ async function doSendToSheets(){
     }
     closeModal();
     showInfo('Sucesso', 'Enviado com sucesso para o Sheets!');
-
-    // Log de envio
     appendSendLog({ when: Date.now(), count: values.length, spreadsheetId, sheetTitle });
   }catch(err){
     console.error(err);
@@ -1011,11 +1037,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // Abre modal de envio
   $("#btnSendSheets").addEventListener("click", openSheetsModal);
-  // Quando colar a URL, lista abas (debounce simples no blur/change)
+  // Quando colar a URL, lista abas
   $("#sheetUrl").addEventListener("change", listTabsFromUrl);
   $("#sheetUrl").addEventListener("blur", listTabsFromUrl);
   // Confirma envio a partir do modal
   $("#btnDoSend").addEventListener("click", doSendToSheets);
+
+  // Onboarding
+  $("#btnHelp").addEventListener("click", openAsk);
+  $("#fabHelp").addEventListener("click", openAsk);
+  $("#btnAskYes").addEventListener("click", ()=>{ try{localStorage.setItem(onboardingKey(),'1');}catch(_){ } closeModal(); });
+  $("#btnAskNo").addEventListener("click", openTut);
+  $("#btnTutPrev").addEventListener("click", ()=>{ if(tutIndex>0){ tutIndex--; renderTut(); } });
+  $("#btnTutNext").addEventListener("click", ()=>{ if(tutIndex<TUTORIAL_STEPS.length-1){ tutIndex++; renderTut(); } });
+  $("#btnTutDone").addEventListener("click", finishTut);
 
   // Carrega histórico “anon” (rascunho) até o usuário logar
   loadHistoryForCurrentUser();
