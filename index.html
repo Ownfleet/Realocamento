@@ -4,7 +4,7 @@
   <base target="_top">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Realocamento de Pacotes</title>
+  <title>SPR • Realocamento de Pacotes</title>
 
   <!-- SheetJS -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -12,90 +12,86 @@
   <style>
     :root{
       --primary:#ff5722; --primary-2:#e14d1f;
-      --bg:#fdfdfd; --card:#fff; --txt:#222; --muted:#777;
-      --ok:#18a957; --err:#d7263d; --chip:#ffe8e0; --line:#eee;
+      --bg:#f7f7f7; --card:#fff; --txt:#222; --muted:#666;
+      --ok:#18a957; --err:#d7263d; --chip:#ffe8e0; --line:#eaeaea;
     }
     *{box-sizing:border-box;margin:0;padding:0}
     body{
       background:var(--bg);color:var(--txt);
-      font:500 16px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial;
+      font:500 15px/1.38 system-ui,Segoe UI,Roboto,Helvetica,Arial;
       -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
       display:flex;flex-direction:column;min-height:100vh;
     }
-    .wrap{max-width:1200px;margin:24px auto;padding:0 16px;flex:1}
+    .wrap{max-width:1200px;margin:16px auto;padding:0 12px;flex:1}
 
     .card{
-      background:var(--card);border-radius:16px;
-      box-shadow:0 6px 20px rgba(0,0,0,.06);
-      padding:18px;transition:transform .15s,box-shadow .15s;
+      background:var(--card);border-radius:14px;
+      box-shadow:0 5px 16px rgba(0,0,0,.05);
+      padding:14px;transition:transform .12s,box-shadow .12s;
     }
-    .card:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,0,0,.10)}
+    .card:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(0,0,0,.08)}
 
     .btn{
-      padding:12px 18px;border:0;border-radius:12px;background:var(--primary);
+      padding:10px 14px;border:0;border-radius:10px;background:var(--primary);
       color:#fff;font-weight:800;letter-spacing:.2px;cursor:pointer;
-      transition:background .15s,transform .08s,box-shadow .15s;
-      box-shadow:0 4px 12px rgba(255,87,34,.25)
+      transition:background .12s,transform .06s,box-shadow .12s;
+      box-shadow:0 3px 10px rgba(255,87,34,.22)
     }
-    .btn:hover{background:var(--primary-2)} .btn:active{transform:scale(.97)}
-    .btn.secondary{background:#333;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+    .btn:hover{background:var(--primary-2)} .btn:active{transform:scale(.985)}
+    .btn.small{padding:8px 12px;border-radius:10px;font-weight:800}
+    .btn.secondary{background:#2f2f2f;box-shadow:0 3px 10px rgba(0,0,0,.18)}
     .btn.secondary:hover{background:#000}
     .btn.ghost{background:#fff;color:#333;border:2px solid #e8e8e8;box-shadow:none}
 
-    .uploader{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .uploader{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .file{
-      display:inline-flex;align-items:center;justify-content:center;min-width:260px;height:44px;
-      padding:0 14px;border:2px dashed #ddd;border-radius:12px;background:#fff;color:#444;
-      cursor:pointer;transition:border-color .15s,box-shadow .15s,color .15s;font-weight:700
+      display:inline-flex;align-items:center;justify-content:center;min-width:230px;height:40px;
+      padding:0 12px;border:2px dashed #ddd;border-radius:10px;background:#fff;color:#444;
+      cursor:pointer;transition:border-color .12s,box-shadow .12s,color .12s;font-weight:800
     }
     .file:hover{border-color:var(--primary);color:var(--primary)}
     .muted{color:var(--muted)} .ok{color:var(--ok)} .err{color:var(--err)}
-    .chip{background:var(--chip);padding:4px 8px;border-radius:999px;font-size:12px}
-    .label-strong{font-weight:800;margin:4px 0 10px}
+    .chip{background:var(--chip);padding:3px 8px;border-radius:999px;font-size:12px}
+    .label-strong{font-weight:900;margin:2px 0 6px}
 
-    /* layout em 2 colunas */
-    .grid{display:grid;gap:16px}
+    /* layout em 2 colunas compacto */
+    .grid{display:grid;gap:12px}
     @media(min-width:980px){ .grid{grid-template-columns:1fr 1fr} }
 
-    .scanbar{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+    .scanbar{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
     .scanbar input{
-      flex:1;min-width:220px;padding:16px 14px;border:2px solid #e8e8e8;border-radius:12px;font-size:18px;outline:none;background:#fff;
-      transition:border-color .15s,box-shadow .15s,transform .08s;
+      flex:1;min-width:220px;padding:12px;border:2px solid #e8e8e8;border-radius:10px;font-size:16px;outline:none;background:#fff;
+      transition:border-color .12s,box-shadow .12s,transform .06s;
     }
     .scanbar input:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(255,87,34,.12)}
     .scanbar input:active{transform:scale(.999)}
 
-    /* KPIs */
-    .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:10px;align-items:stretch}
-    .kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;min-height:84px}
-    .kpi .label{color:var(--muted);font-size:12px;letter-spacing:.35px;text-transform:uppercase;line-height:1;opacity:.95}
-    .kpi .value{margin-top:6px;font-size:20px;font-weight:900;line-height:1.2;white-space:normal;font-variant-numeric:tabular-nums}
+    /* KPIs compactos */
+    .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:8px;align-items:stretch}
+    .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;justify-content:space-between;min-height:72px}
+    .kpi .label{color:var(--muted);font-size:11px;letter-spacing:.35px;text-transform:uppercase;line-height:1;opacity:.95}
+    .kpi .value{margin-top:4px;font-size:18px;font-weight:900;line-height:1.1;white-space:normal;font-variant-numeric:tabular-nums}
     .kpi .value.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.3px}
 
     /* Tabelas */
+    .tbl-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
     table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
+    th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;font-size:13.5px}
     th{color:var(--muted);font-weight:800;background:#fafafa;position:sticky;top:0}
     tbody tr{transition:background .12s} tbody tr:hover td{background:#fff5f2}
 
-    /* dropzone */
-    .dropzone{border:2px dashed #ddd;border-radius:12px;padding:0;background:#fff;transition:all .15s}
-    .dropzone.dragover{border-color:var(--primary);box-shadow:0 0 0 4px rgba(255,87,34,.12)}
-
-    /* chips do filtro */
-    .chipCheck{display:inline-flex;align-items:center;gap:6px;border:1px solid #f1f1f1;background:#fff;padding:6px 10px;border-radius:999px;cursor:pointer;user-select:none;box-shadow:0 2px 6px rgba(0,0,0,.04);transition:box-shadow .12s}
-    .chipCheck:hover{box-shadow:0 3px 10px rgba(0,0,0,.06)}
-    .chipCheck input{display:none}
-    .chipCheck input:checked + span{font-weight:800;color:var(--primary)}
+    /* miscelânea */
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .danger{background:#fef2f2;border:1px solid #fde4e4}
 
     /* Rodapé */
     footer{
       text-align:center;
-      padding:14px;
-      font-size:14px;
+      padding:10px;
+      font-size:13px;
       color:var(--muted);
       border-top:1px solid var(--line);
-      margin-top:24px;
+      margin-top:16px;
     }
     footer b{color:var(--primary)}
   </style>
@@ -114,7 +110,7 @@
     </div>
   </section>
 
-  <div class="grid" style="margin-top:16px">
+  <div class="grid" style="margin-top:12px">
     <!-- COLUNA ESQUERDA: Base + Scan + KPIs -->
     <section class="card">
       <div class="uploader" style="justify-content:space-between">
@@ -126,9 +122,9 @@
         <input id="scan" placeholder="Bipe/insira o BRS... (Enter)" autocomplete="off" disabled />
         <button class="btn" id="btnScan" disabled>Bipar</button>
       </div>
-      <div id="scanMsg" class="muted" style="margin-top:8px">Carregue a planilha para habilitar a busca.</div>
+      <div id="scanMsg" class="muted" style="margin-top:6px">Carregue a planilha para habilitar a busca.</div>
 
-      <div id="resultLeft" style="margin-top:16px; display:none">
+      <div id="resultLeft" style="margin-top:10px; display:none">
         <div class="kpis">
           <div class="kpi"><div class="label">BRS</div><div class="value mono" id="kBRS">—</div></div>
           <div class="kpi"><div class="label">Corridor Cage</div><div class="value" id="kRota">—</div></div>
@@ -144,31 +140,32 @@
       <div id="resultRight" style="display:none">
         <div>
           <div class="label-strong">Endereço (Destination Address)</div>
-          <div id="kEndereco" class="card" style="padding:12px;border:1px solid #eee"></div>
+          <div id="kEndereco" class="card" style="padding:10px;border:1px solid #eee"></div>
         </div>
 
         <!-- Filtro por tipo de veículo -->
-        <div id="filterBar" style="margin-top:14px; display:none">
+        <div id="filterBar" style="margin-top:12px; display:none">
           <div class="label-strong">Filtrar por <span class="chip">Planned Vehicle Type</span></div>
-          <div id="vehicleChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn secondary" id="btnAll">Selecionar todos</button>
-            <button class="btn secondary" id="btnNone">Limpar</button>
+          <div id="vehicleChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="btn secondary small" id="btnAll">Selecionar todos</button>
+            <button class="btn secondary small" id="btnNone">Limpar</button>
           </div>
         </div>
 
-        <div style="margin-top:14px">
+        <div style="margin-top:12px">
           <div class="label-strong">Rotas com o mesmo <span class="chip">Neighborhood</span></div>
           <div class="muted" id="sameInfo">—</div>
-          <div style="overflow:auto;margin-top:8px">
+          <div class="tbl-wrap" style="margin-top:6px">
             <table id="sameTable">
               <thead>
                 <tr>
                   <th>Corridor Cage</th>
                   <th>Bairro</th>
                   <th>Veículo</th>
-                  <th>Qtd. Pacotes</th>
-                  <th>Status</th>
+                  <th>Qtd. Pacotes (Total)</th>
+                  <th>Quantidade no bairro</th>
+                  <th>Ação</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -180,6 +177,32 @@
       <div id="placeholderRight" class="muted">Bipe um BRS para ver endereço, filtrar e listar as rotas do mesmo bairro.</div>
     </aside>
   </div>
+
+  <!-- SELEÇÕES / REALOCAÇÕES -->
+  <section class="card" style="margin-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div class="label-strong">Realocações selecionadas</div>
+      <div class="actions">
+        <button class="btn small ghost" id="btnClearSel" title="Limpar tabela">Limpar</button>
+        <button class="btn small" id="btnExport">Exportar (.xlsx)</button>
+      </div>
+    </div>
+    <div class="muted" id="selInfo" style="margin-top:6px">Sem itens.</div>
+    <div class="tbl-wrap" style="margin-top:6px">
+      <table id="selTable">
+        <thead>
+          <tr>
+            <th>BR &amp; Protocolo</th>
+            <th>AT &amp; Protocolo</th>
+            <th>Rota</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
 </div>
 
 <footer>
@@ -200,7 +223,7 @@ const COLS_EXT = {
   brs:        ['SPX TN','BRS','Codigo','Código','Code','Tracking','AWB'],
   endereco:   ['Destination Address','Address','REGIAO','REGIÃO'],
   bairro:     ['Neighborhood','BAIRRO','Bairro'],
-  plannedAt:  ['Planned AT','Delivery Time','PlannedAT','AT','Planned_At'],
+  plannedAt:  ['AT & Protocolo','AT (Planned)','Planned AT','Delivery Time','PlannedAT','AT','Planned_At'],
   veiculo:    ['Planned Vehicle Type','Location Type','Tipo de veículo','Veiculo','Vehicle Type','Tipo'],
   cluster:    ['Corridor Cage','Cluster','Rota','Route','Route Name','Cluster Name']
 };
@@ -223,10 +246,12 @@ function pick(row, names){
 let BASE_ROWS = [];
 let INDEX_BRS = new Map();
 let INDEX_BAIRRO_CLUSTER = new Map();
+let INDEX_TOTAL_BY_CAGE = new Map(); // NOVO: total por rota (toda a base)
 let VEH_TYPES = [];
 let VEH_FILTER = new Set();
 let LAST_ROW = null;
 let LAST_SAME = [];
+let SELECTED = []; // {brs, at, rota}
 
 /* ========= Excel ========= */
 function parseSheetToObjects(ws){
@@ -255,15 +280,17 @@ function normalizeFromExt(row){
     veiculo:  pick(row, COLS_EXT.veiculo),
     rota:     pick(row, COLS_EXT.cluster)
   };
-  out.at = formatMaybeDate(out.at);
+  if(/^\d+(\.\d+)?$/.test(out.at)) out.at = formatMaybeDate(out.at); // evita datas
   return out;
 }
 
 /* ========= Índices ========= */
 function buildIndexes(){
-  INDEX_BRS.clear(); INDEX_BAIRRO_CLUSTER.clear();
+  INDEX_BRS.clear(); INDEX_BAIRRO_CLUSTER.clear(); INDEX_TOTAL_BY_CAGE.clear();
   for(const r of BASE_ROWS){
     if(r.brs) INDEX_BRS.set(normBRS(r.brs), r);
+
+    // por bairro -> rotas
     if(r.bairro){
       const keyB = stripAccents(String(r.bairro)).trim();
       if(!INDEX_BAIRRO_CLUSTER.has(keyB)) INDEX_BAIRRO_CLUSTER.set(keyB, new Map());
@@ -272,6 +299,10 @@ function buildIndexes(){
       if(!mapC.has(keyC)) mapC.set(keyC, []);
       mapC.get(keyC).push(r);
     }
+
+    // total por rota (toda a base)
+    const cage = r.rota || '(sem rota)';
+    INDEX_TOTAL_BY_CAGE.set(cage, (INDEX_TOTAL_BY_CAGE.get(cage)||0) + 1);
   }
 }
 
@@ -343,6 +374,20 @@ async function handleLoad(inputFile){
   }
 }
 
+/* ========= Helpers ========= */
+function pickRepresentativeAT(rows){
+  // AT mais frequente na rota
+  const freq = new Map();
+  for(const r of rows){
+    const key = (r.at || '').trim();
+    if(!key) continue;
+    freq.set(key, (freq.get(key)||0) + 1);
+  }
+  let best = '', bestN = -1;
+  for(const [k,v] of freq.entries()){ if(v>bestN){ best=k; bestN=v; } }
+  return best || (rows[0]?.at || '');
+}
+
 /* ========= Busca e render ========= */
 function findSameNeighborhoodGrouped(bairro){
   const key = stripAccents(String(bairro||'').trim());
@@ -350,10 +395,11 @@ function findSameNeighborhoodGrouped(bairro){
   if(!mapC) return [];
   return Array.from(mapC.entries()).map(([cage,rows])=>({cage,rows}));
 }
+
 function renderResult(row, same){
   const sameFiltered = same
-    .filter(g => (g.cage||'') !== (row.rota||''))
-    .filter(g => !VEH_FILTER.size || VEH_FILTER.has(g.rows[0].veiculo||''));
+    .filter(g => (g.cage||'') !== (row.rota||'')) // não mostrar a própria rota do BRS
+    .filter(g => !VEH_FILTER.size || VEH_FILTER.has((g.rows[0].veiculo||'').trim()));
 
   $("#resultLeft").style.display="block";
   $("#resultRight").style.display="block";
@@ -369,29 +415,80 @@ function renderResult(row, same){
 
   const tbody = $("#sameTable tbody"); tbody.innerHTML = "";
   sameFiltered.forEach(g=>{
-    const count = g.rows.length;
-    let aviso = '';
-    if(count <= 3){
-      aviso = `<span class="err">⚠️ Apenas ${count} pacote(s) (não indicado realocar)</span>`;
-    }else{
-      aviso = `<span class="ok">${count} pacotes</span>`;
-    }
+    const qtdNoBairro = g.rows.length;         // quantidade na região (bairro)
     const veiculo = g.rows[0].veiculo || '—';
+    const isFiorino = /fiorino/i.test(veiculo);
+
+    // TOTAL no Corridor Cage (toda a base)
+    const totalCage = INDEX_TOTAL_BY_CAGE.get(g.cage) || qtdNoBairro;
+
+    let statusHtml = '';
+    if(qtdNoBairro <= 3 && !isFiorino){
+      statusHtml = `<span class="err">⚠️ ${qtdNoBairro}</span>`;
+    }else{
+      statusHtml = `<span class="ok">${qtdNoBairro}</span>`;
+    }
+
+    // botão Adicionar
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td><span class="chip">${g.cage}</span></td>
-                    <td>${row.bairro}</td>
-                    <td>${veiculo}</td>
-                    <td>${count}</td>
-                    <td>${aviso}</td>`;
+    tr.innerHTML = `
+      <td><span class="chip">${g.cage}</span></td>
+      <td>${row.bairro}</td>
+      <td>${veiculo}</td>
+      <td>${totalCage}</td>
+      <td>${statusHtml}</td>
+      <td><button class="btn small" data-cage="${g.cage}">Adicionar nesta rota</button></td>
+    `;
+    // bind
+    tr.querySelector('button').addEventListener('click', ()=>{
+      if(!LAST_ROW) return;
+      const atTarget = pickRepresentativeAT(g.rows);
+      addSelection({ brs: LAST_ROW.brs, at: atTarget, rota: g.cage });
+    });
     tbody.appendChild(tr);
   });
+
   $("#sameInfo").textContent = sameFiltered.length
     ? `Encontradas ${sameFiltered.length} rotas com o mesmo Neighborhood.`
     : "Nenhuma outra rota com o mesmo Neighborhood.";
 }
+
 function rerenderSame(){
   if(!LAST_ROW) return;
   renderResult(LAST_ROW, LAST_SAME);
+}
+
+/* ========= Seleções / Realocações ========= */
+function renderSelections(){
+  const tbody = $("#selTable tbody");
+  tbody.innerHTML = "";
+  SELECTED.forEach((it, idx)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="mono">${it.brs||'—'}</td>
+      <td class="mono">${it.at||'—'}</td>
+      <td>${it.rota||'—'}</td>
+      <td><button class="btn small ghost danger" title="Remover">✕</button></td>
+    `;
+    tr.querySelector('button').addEventListener('click', ()=>{
+      SELECTED.splice(idx,1);
+      renderSelections();
+    });
+    tbody.appendChild(tr);
+  });
+  $("#selInfo").textContent = SELECTED.length ? `${SELECTED.length} item(ns)` : 'Sem itens.';
+}
+function addSelection({brs, at, rota}){ SELECTED.push({brs, at, rota}); renderSelections(); }
+function clearSelections(){ SELECTED = []; renderSelections(); }
+
+function exportSelections(){
+  if(!SELECTED.length){ alert('Nada para exportar.'); return; }
+  const header = ['BR & Protocolo','AT & Protocolo','Rota'];
+  const rows = SELECTED.map(it=>[it.brs||'', it.at||'', it.rota||'']);
+  const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Realocacoes');
+  XLSX.writeFile(wb, `realocacoes_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 /* ========= Ações ========= */
@@ -411,8 +508,9 @@ function handleScan(){
   $("#scanMsg").innerHTML = '<span class="ok">Pesquisa concluída.</span>';
   input.value=''; focusScan();
 }
+
 function resetBase(){
-  BASE_ROWS = []; INDEX_BRS.clear(); INDEX_BAIRRO_CLUSTER.clear();
+  BASE_ROWS = []; INDEX_BRS.clear(); INDEX_BAIRRO_CLUSTER.clear(); INDEX_TOTAL_BY_CAGE.clear();
   LAST_ROW=null; LAST_SAME=[];
   $("#baseInfo").textContent = 'nenhuma carregada';
   $("#sheetInfo").textContent = '';
@@ -421,6 +519,7 @@ function resetBase(){
   $("#resultRight").style.display='none';
   $("#placeholderRight").style.display='block';
   $("#scanMsg").textContent = 'Carregue a planilha para habilitar a busca.';
+  clearSelections();
 }
 
 /* ========= Drag & Drop ========= */
@@ -446,6 +545,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   $("#scan").addEventListener("keydown", e=>{ if(e.key === "Enter"){ e.preventDefault(); handleScan(); } });
   $("#btnReset").addEventListener("click", resetBase);
 
+  $("#btnExport").addEventListener("click", exportSelections);
+  $("#btnClearSel").addEventListener("click", clearSelections);
+
   const last = JSON.parse(localStorage.getItem('last_base_info')||'null');
   if(last){
     const when = new Date(last.when||Date.now()).toLocaleString();
@@ -455,5 +557,3 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 </body>
 </html>
-
-
