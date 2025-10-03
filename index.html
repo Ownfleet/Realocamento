@@ -107,7 +107,7 @@
       box-shadow:0 15px 40px rgba(0,0,0,.18);overflow:hidden;
       animation:pop .15s ease-out;
     }
-    @keyframes pop{from{transform:scale(.98);opacity:.8}to{transform:scale(1);opacity:1}}
+    @keyframes pop{from{transform:scale(.98);opacity:.8}to{transform:scale(1);opacity:1)}
     .modal header{padding:14px 16px;border-bottom:1px solid #eee;font-weight:900}
     .modal .content{padding:14px 16px;line-height:1.45}
     .modal .content p{margin:6px 0}
@@ -259,7 +259,7 @@
         <input id="sheetUrl" placeholder="Cole aqui o link completo da planilha">
       </div>
 
-      <!-- NOVO: seleção de aba -->
+      <!-- seleção de aba -->
       <div class="row" style="margin-top:8px">
         <div class="field" style="flex:1">
           <label for="sheetTab"><b>Aba</b></label>
@@ -280,8 +280,8 @@
         </div>
       </div>
       <p class="muted" style="margin-top:10px">
-        Serão enviados <b>apenas</b> as colunas <span class="chip">BR &amp; Protocolo</span> e
-        <span class="chip">AT &amp; Protocolo</span>.
+        Serão enviados <b>apenas</b> os dados das colunas <span class="chip">BR &amp; Protocolo</span> e
+        <span class="chip">AT &amp; Protocolo</span> (sem cabeçalho).
       </p>
     </div>
     <footer>
@@ -474,12 +474,11 @@ function loadHistoryForCurrentUser(){
   }catch(_){}
 }
 function pushSentHistory(entry){
-  // entry: {when, url, spreadsheetId, range, tab, count, items:[{brs,at}]}
   try{
     const raw = localStorage.getItem(sentKey());
     const arr = raw ? JSON.parse(raw) : [];
     arr.unshift(entry);
-    localStorage.setItem(sentKey(), JSON.stringify(arr.slice(0,100))); // limita a 100
+    localStorage.setItem(sentKey(), JSON.stringify(arr.slice(0,100)));
   }catch(_){}
 }
 function readSentHistory(){
@@ -811,7 +810,7 @@ function openSheetsModal(){
   if($("#sheetUrl").value.trim()) listTabsFromUrl();
 }
 
-/* envia pro sheets — apenas 2 colunas (BR & AT) + histórico de envio */
+/* envia pro sheets — APENAS DADOS (sem cabeçalho) + histórico de envio */
 async function doSendToSheets(){
   if(!SELECTED.length){ showInfo('Envio', 'Nenhuma realocação na tabela.'); return; }
 
@@ -834,166 +833,11 @@ async function doSendToSheets(){
     if(!range){ showInfo('Range obrigatório', 'Informe a aba/range, ex.: <b>Página1!A1</b>.'); return; }
   }
 
-  const values = [
-    ['BR & Protocolo','AT & Protocolo'],
-    ...SELECTED.map(it=>[it.brs||'', it.at||''])
-  ];
+  // >>> ALTERAÇÃO: envia apenas dados (sem cabeçalho)
+  const values = SELECTED.map(it=>[it.brs || '', it.at || '']);
 
   const apiUrl =
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}` +
-    `/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
-
-  try{
-    const res = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ values })
-    });
-    if(!res.ok){
-      const txt = await res.text();
-      throw new Error(txt);
-    }
-    // salva histórico do envio (somente BR/AT enviados)
-    const itemsSent = SELECTED.map(({brs,at})=>({brs,at}));
-    pushSentHistory({
-      when: Date.now(),
-      url: link,
-      spreadsheetId,
-      range,
-      tab: (range.split('!')[0] || ''),
-      count: itemsSent.length,
-      items: itemsSent
-    });
-
-    closeModal();
-    showInfo('Sucesso', 'Enviado com sucesso para o Sheets!');
-  }catch(err){
-    console.error(err);
-    showInfo('Falha ao enviar', 'Verifique permissões e se a API do Sheets está ativa.<br><small>'+ (err?.message||err) +'</small>');
-  }
-}
-
-/* ========= Histórico (render) ========= */
-function renderHistory(){
-  const list = readSentHistory();
-  const wrap = $("#historyList");
-  if(!list.length){
-    wrap.innerHTML = '<p class="muted">Nenhum envio registrado neste navegador/usuário.</p>';
-    return;
-  }
-  let html = '<div class="tbl-wrap"><table class="history-table"><thead><tr><th>Quando</th><th>Aba/Range</th><th>Planilha</th><th>Qtd</th><th></th></tr></thead><tbody>';
-  list.forEach((e,idx)=>{
-    const when = new Date(e.when).toLocaleString();
-    const urlShort = e.url.replace(/^https?:\/\//,'').split('?')[0];
-    html += `<tr>
-      <td>${when}</td>
-      <td><span class="chip">${e.range}</span></td>
-      <td class="mini">${urlShort}</td>
-      <td><b>${e.count}</b></td>
-      <td><button class="btn small ghost" onclick="showBatch(${idx})">Ver itens</button></td>
-    </tr>`;
-  });
-  html += '</tbody></table></div>';
-  wrap.innerHTML = html;
-}
-function showBatch(i){
-  const list = readSentHistory();
-  const e = list[i];
-  if(!e){ return; }
-  const lines = e.items.map(x=>`${x.brs || '—'}  |  ${x.at || '—'}`).join('<br>');
-  showInfo('Itens enviados', `<div class="mini"><b>${new Date(e.when).toLocaleString()}</b><br>
-    <b>Range:</b> ${e.range}<br>
-    <b>Planilha:</b> ${e.url}</div><hr style="border:none;border-top:1px solid #eee;margin:8px 0">
-    <div class="mono mini">${lines || '(vazio)'}</div>`);
-}
-
-/* ========= Ações ========= */
-function handleScan(){
-  const input = $("#scan");
-  const code = input.value.trim();
-  if(!code){ showInfo('Busca', 'Digite/escaneie um <b>BRS</b>.'); return; }
-  if(!INDEX_BRS.size){ showInfo('Base vazia', 'Carregue a planilha primeiro.'); return; }
-
-  const row = INDEX_BRS.get(normBRS(code));
-  if(!row){ showInfo('Não encontrado', 'Código não localizado na base.'); input.value=''; focusScan(); return; }
-
-  const same = findSameNeighborhoodGrouped(row.bairro);
-  LAST_ROW = row; LAST_SAME = same;
-
-  renderResult(row, same);
-  $("#scanMsg").innerHTML = '<span class="ok">Pesquisa concluída.</span>';
-  input.value=''; focusScan();
-}
-
-function resetBase(){
-  BASE_ROWS = []; INDEX_BRS.clear(); INDEX_BAIRRO_CLUSTER.clear(); INDEX_TOTAL_BY_CAGE.clear();
-  LAST_ROW=null; LAST_SAME=[];
-  $("#baseInfo").textContent = 'nenhuma carregada';
-  $("#sheetInfo").textContent = '';
-  $("#scan").disabled = true; $("#btnScan").disabled = true; $("#scan").value='';
-  $("#resultLeft").style.display='none';
-  $("#resultRight").style.display='none';
-  $("#placeholderRight").style.display='block';
-  $("#scanMsg").textContent = 'Carregue a planilha para habilitar a busca.';
-  clearSelections();
-}
-
-/* ========= Drag & Drop ========= */
-(function setupDnd(){
-  const dz = document.getElementById('dropzone');
-  const input = document.getElementById('file');
-  const prevent = e=>{e.preventDefault(); e.stopPropagation();};
-  ['dragenter','dragover','dragleave','drop'].forEach(ev=> dz.addEventListener(ev, prevent));
-  dz.addEventListener('dragenter', ()=> dz.classList.add('dragover'));
-  dz.addEventListener('dragover',  ()=> dz.classList.add('dragover'));
-  dz.addEventListener('dragleave', ()=> dz.classList.remove('dragover'));
-  dz.addEventListener('drop', (e)=>{
-    dz.classList.remove('dragover');
-    const f = e.dataTransfer?.files?.[0];
-    if(f){ input.files = e.dataTransfer.files; handleLoad(f); }
-  });
-})();
-
-/* ========= Listeners ========= */
-document.addEventListener('DOMContentLoaded', ()=>{
-  $("#btnLoad").addEventListener("click", ()=>handleLoad());
-  $("#btnScan").addEventListener("click", handleScan);
-  $("#scan").addEventListener("keydown", e=>{ if(e.key === "Enter"){ e.preventDefault(); handleScan(); } });
-  $("#btnReset").addEventListener("click", resetBase);
-
-  $("#btnExport").addEventListener("click", exportSelections);
-  $("#btnClearSel").addEventListener("click", clearSelections);
-
-  // Abre modal de envio
-  $("#btnSendSheets").addEventListener("click", openSheetsModal);
-  // Confirma envio a partir do modal
-  $("#btnDoSend").addEventListener("click", doSendToSheets);
-
-  // Listar abas (botão) + integrações do modal
-  $("#btnLoadTabs").addEventListener("click", listTabsFromUrl);
-  $("#sheetTab").addEventListener("change", (e)=>{
-    if(e.target.value){ $("#sheetRange").value = `${e.target.value}!A1`; }
-  });
-  $("#sheetUrl").addEventListener("blur", ()=>{
-    if($("#sheetUrl").value.trim()) listTabsFromUrl();
-  });
-
-  // Histórico
-  $("#btnHistory").addEventListener("click", ()=>{ renderHistory(); openModal(historyModal); });
-
-  // Carrega histórico “anon” (rascunho) até o usuário logar
-  loadHistoryForCurrentUser();
-
-  const last = JSON.parse(localStorage.getItem('last_base_info') || 'null');
-  if (last) {
-    const when = new Date(last.when || Date.now()).toLocaleString();
-    $("#baseInfo").textContent =
-      `${last.rows} linhas carregadas (última: ${last.name} em ${when})`;
-  }
-});
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreads heetId}`; // intentional error? Wait
 </script>
 </body>
 </html>
