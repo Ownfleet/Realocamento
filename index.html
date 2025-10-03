@@ -103,7 +103,7 @@
       padding:16px;
     }
     .modal{
-      background:#fff;border-radius:16px;max-width:520px;width:100%;
+      background:#fff;border-radius:16px;max-width:620px;width:100%;
       box-shadow:0 15px 40px rgba(0,0,0,.18);overflow:hidden;
       animation:pop .15s ease-out;
     }
@@ -113,13 +113,16 @@
     .modal .content p{margin:6px 0}
     .modal .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .modal .field{display:flex;flex-direction:column;gap:6px;flex:1}
-    .modal input{
+    .modal input, .modal select{
       padding:10px;border:2px solid #eee;border-radius:10px;font-size:14px;outline:none;background:#fff;
     }
-    .modal input:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(255,87,34,.12)}
+    .modal input:focus, .modal select:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(255,87,34,.12)}
     .modal footer{display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #eee;padding:12px}
     .hidden{display:none}
     .warn-badge{color:#d7263d;font-weight:900}
+    .mini{font-size:12px}
+    .history-table{width:100%;border-collapse:collapse}
+    .history-table th, .history-table td{border-bottom:1px solid #eee;padding:8px;text-align:left;font-size:13px}
   </style>
 </head>
 <body>
@@ -210,6 +213,7 @@
       <div class="actions">
         <button class="btn small ghost" id="btnClearSel" title="Limpar tabela">Limpar</button>
         <button class="btn small" id="btnExport">Exportar (.xlsx)</button>
+        <button class="btn small" id="btnHistory" title="Histórico local">Histórico</button>
         <button class="btn small" id="btnSendSheets" title="Enviar para Google Sheets">Enviar p/ Sheets</button>
       </div>
     </div>
@@ -254,6 +258,21 @@
         <label for="sheetUrl"><b>URL da planilha</b> (docs.google.com/spreadsheets/...)</label>
         <input id="sheetUrl" placeholder="Cole aqui o link completo da planilha">
       </div>
+
+      <!-- NOVO: seleção de aba -->
+      <div class="row" style="margin-top:8px">
+        <div class="field" style="flex:1">
+          <label for="sheetTab"><b>Aba</b></label>
+          <div class="row" style="gap:6px">
+            <select id="sheetTab" disabled style="flex:1">
+              <option>— carregue as abas —</option>
+            </select>
+            <button class="btn small" type="button" id="btnLoadTabs">Listar abas</button>
+          </div>
+          <small class="muted">Ao escolher a aba, o campo Range abaixo é atualizado automaticamente.</small>
+        </div>
+      </div>
+
       <div class="row" style="margin-top:8px">
         <div class="field">
           <label for="sheetRange"><b>Aba/Range</b> (ex.: <code>Página1!A1</code>)</label>
@@ -268,6 +287,19 @@
     <footer>
       <button class="btn cancel" onclick="closeModal()">Cancelar</button>
       <button class="btn" id="btnDoSend">Enviar</button>
+    </footer>
+  </div>
+
+  <!-- histórico modal -->
+  <div id="historyModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="histTitle">
+    <header id="histTitle">Histórico (local) de envios</header>
+    <div class="content">
+      <div id="historyList"></div>
+      <p class="mini muted" style="margin-top:6px">Histórico fica salvo por usuário (e-mail) no seu navegador. Só sai se você limpar.</p>
+    </div>
+    <footer>
+      <button class="btn cancel" onclick="clearSentHistory()">Limpar histórico</button>
+      <button class="btn cancel" onclick="closeModal()">Fechar</button>
     </footer>
   </div>
 </div>
@@ -373,9 +405,10 @@ const overlay = $("#overlay");
 const infoModal = $("#infoModal");
 const infoBody = $("#infoBody");
 const sheetsModal = $("#sheetsModal");
+const historyModal = $("#historyModal");
 function openModal(which){
   overlay.style.display = 'flex';
-  [infoModal, sheetsModal].forEach(x=>x.classList.add('hidden'));
+  [infoModal, sheetsModal, historyModal].forEach(x=>x.classList.add('hidden'));
   which.classList.remove('hidden');
 }
 function closeModal(){
@@ -424,7 +457,10 @@ let SELECTED = []; // {brs, at, rota}
 
 /* ========= Persistência por usuário ========= */
 const LS_PREFIX = 'spr_realloc_history_';
+const LS_SENT_PREFIX = 'spr_realloc_sent_';
 function storageKey(){ return LS_PREFIX + (currentEmail || 'anon'); }
+function sentKey(){ return LS_SENT_PREFIX + (currentEmail || 'anon'); }
+
 function saveHistory(){
   try{ localStorage.setItem(storageKey(), JSON.stringify(SELECTED)); }catch(_){}
 }
@@ -436,6 +472,25 @@ function loadHistoryForCurrentUser(){
       renderSelections();
     }
   }catch(_){}
+}
+function pushSentHistory(entry){
+  // entry: {when, url, spreadsheetId, range, tab, count, items:[{brs,at}]}
+  try{
+    const raw = localStorage.getItem(sentKey());
+    const arr = raw ? JSON.parse(raw) : [];
+    arr.unshift(entry);
+    localStorage.setItem(sentKey(), JSON.stringify(arr.slice(0,100))); // limita a 100
+  }catch(_){}
+}
+function readSentHistory(){
+  try{
+    const raw = localStorage.getItem(sentKey());
+    return raw ? JSON.parse(raw) : [];
+  }catch(_){ return []; }
+}
+function clearSentHistory(){
+  try{ localStorage.removeItem(sentKey()); }catch(_){}
+  renderHistory();
 }
 
 /* ========= Excel ========= */
@@ -605,7 +660,7 @@ function renderResult(row, same){
     // Aviso quando poucos pacotes
     let statusHtml = '';
     if(qtdNoBairro <= 3 && !isFiorino){
-      statusHtml = `<span class="warn-badge" title="Poucos pacotes neste bairro">⚠️ ${qtdNoBairro} <small>(poucos pacotes)</small></span>`;
+      statusHtml = `<span class="warn-badge" title="Poucos pacotes neste bairro">⚠️ ${qtdNoBairro} <small>(poucos)</small></span>`;
     }else{
       statusHtml = `<span class="ok" title="Quantidade no bairro">${qtdNoBairro}</span>`;
     }
@@ -699,21 +754,71 @@ async function gidToSheetTitle(spreadsheetId, gid){
   return sheet ? sheet.properties.title : null;
 }
 
-/* abre modal de envio */
-function openSheetsModal(){
-  $("#sheetUrl").value = '';
-  $("#sheetRange").value = 'Página1!A1';
-  openModal(sheetsModal);
+/* Lista as abas do link e preenche o select */
+async function listTabsFromUrl(){
+  const link = $("#sheetUrl").value.trim();
+  if(!link){ showInfo('URL necessária', 'Cole o link completo da planilha do Google.'); return; }
+  const spreadsheetId = parseSpreadsheetId(link);
+  if(!spreadsheetId){ showInfo('URL inválida', 'Precisa ser um link de <b>docs.google.com/spreadsheets</b>.'); return; }
+
+  await ensureAuth();
+
+  try{
+    const res = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets(properties(sheetId,title))`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if(!res.ok){
+      const txt = await res.text();
+      throw new Error(txt);
+    }
+    const data = await res.json();
+    const sel = $("#sheetTab");
+    sel.innerHTML = '';
+    (data.sheets||[]).forEach(s=>{
+      const opt = document.createElement('option');
+      opt.value = s.properties.title;
+      opt.textContent = s.properties.title;
+      opt.dataset.sheetId = s.properties.sheetId;
+      sel.appendChild(opt);
+    });
+    sel.disabled = !(sel.options.length);
+
+    // Se o link tiver gid, tenta pré-selecionar a aba correspondente
+    const gid = parseGid(link);
+    if(gid !== null){
+      for(const o of sel.options){
+        if(Number(o.dataset.sheetId) === gid){ sel.value = o.value; break; }
+      }
+    }
+
+    // Atualiza o range automaticamente
+    if(sel.value){ $("#sheetRange").value = `${sel.value}!A1`; }
+  }catch(err){
+    console.error(err);
+    showInfo('Erro ao listar abas', '<small>'+ (err?.message||err) +'</small>');
+  }
 }
 
-/* envia pro sheets usando os dados do modal — somente 2 colunas */
+/* abre modal de envio */
+function openSheetsModal(){
+  $("#sheetUrl").value = $("#sheetUrl").value || '';
+  $("#sheetRange").value = 'Página1!A1';
+  $("#sheetTab").innerHTML = '<option>— carregue as abas —</option>';
+  $("#sheetTab").disabled = true;
+  openModal(sheetsModal);
+
+  if($("#sheetUrl").value.trim()) listTabsFromUrl();
+}
+
+/* envia pro sheets — apenas 2 colunas (BR & AT) + histórico de envio */
 async function doSendToSheets(){
   if(!SELECTED.length){ showInfo('Envio', 'Nenhuma realocação na tabela.'); return; }
 
   const link = $("#sheetUrl").value.trim();
   if(!link){ showInfo('URL inválida', 'Cole o link completo da planilha do Google.'); return; }
   const spreadsheetId = parseSpreadsheetId(link);
-  if(!spreadsheetId){ showInfo('URL inválida', 'Precisa ser um link de <b>docs.google.com/spreadsheets</b>.'); return; }
+  if(!spreadsheetId){ showInfo('URL inválida', 'Precisa ser de <b>docs.google.com/spreadsheets</b>.'); return; }
 
   await ensureAuth();
 
@@ -751,12 +856,58 @@ async function doSendToSheets(){
       const txt = await res.text();
       throw new Error(txt);
     }
+    // salva histórico do envio (somente BR/AT enviados)
+    const itemsSent = SELECTED.map(({brs,at})=>({brs,at}));
+    pushSentHistory({
+      when: Date.now(),
+      url: link,
+      spreadsheetId,
+      range,
+      tab: (range.split('!')[0] || ''),
+      count: itemsSent.length,
+      items: itemsSent
+    });
+
     closeModal();
     showInfo('Sucesso', 'Enviado com sucesso para o Sheets!');
   }catch(err){
     console.error(err);
     showInfo('Falha ao enviar', 'Verifique permissões e se a API do Sheets está ativa.<br><small>'+ (err?.message||err) +'</small>');
   }
+}
+
+/* ========= Histórico (render) ========= */
+function renderHistory(){
+  const list = readSentHistory();
+  const wrap = $("#historyList");
+  if(!list.length){
+    wrap.innerHTML = '<p class="muted">Nenhum envio registrado neste navegador/usuário.</p>';
+    return;
+  }
+  let html = '<div class="tbl-wrap"><table class="history-table"><thead><tr><th>Quando</th><th>Aba/Range</th><th>Planilha</th><th>Qtd</th><th></th></tr></thead><tbody>';
+  list.forEach((e,idx)=>{
+    const when = new Date(e.when).toLocaleString();
+    const urlShort = e.url.replace(/^https?:\/\//,'').split('?')[0];
+    html += `<tr>
+      <td>${when}</td>
+      <td><span class="chip">${e.range}</span></td>
+      <td class="mini">${urlShort}</td>
+      <td><b>${e.count}</b></td>
+      <td><button class="btn small ghost" onclick="showBatch(${idx})">Ver itens</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+}
+function showBatch(i){
+  const list = readSentHistory();
+  const e = list[i];
+  if(!e){ return; }
+  const lines = e.items.map(x=>`${x.brs || '—'}  |  ${x.at || '—'}`).join('<br>');
+  showInfo('Itens enviados', `<div class="mini"><b>${new Date(e.when).toLocaleString()}</b><br>
+    <b>Range:</b> ${e.range}<br>
+    <b>Planilha:</b> ${e.url}</div><hr style="border:none;border-top:1px solid #eee;margin:8px 0">
+    <div class="mono mini">${lines || '(vazio)'}</div>`);
 }
 
 /* ========= Ações ========= */
@@ -820,6 +971,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
   $("#btnSendSheets").addEventListener("click", openSheetsModal);
   // Confirma envio a partir do modal
   $("#btnDoSend").addEventListener("click", doSendToSheets);
+
+  // Listar abas (botão) + integrações do modal
+  $("#btnLoadTabs").addEventListener("click", listTabsFromUrl);
+  $("#sheetTab").addEventListener("change", (e)=>{
+    if(e.target.value){ $("#sheetRange").value = `${e.target.value}!A1`; }
+  });
+  $("#sheetUrl").addEventListener("blur", ()=>{
+    if($("#sheetUrl").value.trim()) listTabsFromUrl();
+  });
+
+  // Histórico
+  $("#btnHistory").addEventListener("click", ()=>{ renderHistory(); openModal(historyModal); });
 
   // Carrega histórico “anon” (rascunho) até o usuário logar
   loadHistoryForCurrentUser();
