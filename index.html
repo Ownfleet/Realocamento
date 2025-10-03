@@ -14,29 +14,34 @@
 
   <style>
     :root{
+      /* Paleta Shopee */
       --primary:#ff5722; --primary-2:#e14d1f;
       --bg:#f7f7f7; --card:#fff; --txt:#222; --muted:#666;
-      --ok:#18a957; --err:#d7263d; --chip:#ffe8e0; --line:#eaeaea;
+      --ok:#18a957; --err:#d7263d; --chip:#ffe8e0; --line:#ececec;
       --overlay: rgba(0,0,0,.35);
+      --shadow-sm: 0 5px 16px rgba(0,0,0,.06);
+      --shadow-md: 0 12px 30px rgba(0,0,0,.12);
+      --radius-xl:16px; --radius-lg:14px; --radius-sm:10px;
     }
     *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
     body{
       background:var(--bg);color:var(--txt);
       font:500 15px/1.38 system-ui,Segoe UI,Roboto,Helvetica,Arial;
       -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
       display:flex;flex-direction:column;min-height:100vh;
     }
-    .wrap{max-width:1200px;margin:16px auto;padding:0 12px;flex:1}
+    .wrap{max-width:1200px;margin:18px auto;padding:0 14px;flex:1}
 
     .card{
-      background:var(--card);border-radius:14px;
-      box-shadow:0 5px 16px rgba(0,0,0,.05);
+      background:var(--card);border-radius:var(--radius-lg);
+      box-shadow:var(--shadow-sm);
       padding:14px;transition:transform .12s,box-shadow .12s;
     }
     .card:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(0,0,0,.08)}
 
     .btn{
-      padding:10px 14px;border:0;border-radius:10px;background:var(--primary);
+      padding:10px 14px;border:0;border-radius:12px;background:var(--primary);
       color:#fff;font-weight:800;letter-spacing:.2px;cursor:pointer;
       transition:background .12s,transform .06s,box-shadow .12s;
       box-shadow:0 3px 10px rgba(255,87,34,.22)
@@ -49,50 +54,50 @@
     .btn.cancel{background:#e8e8e8;color:#222;box-shadow:none}
     .btn.full{width:100%}
 
-    .uploader{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .uploader{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .file{
-      display:inline-flex;align-items:center;justify-content:center;min-width:230px;height:40px;
-      padding:0 12px;border:2px dashed #ddd;border-radius:10px;background:#fff;color:#444;
+      display:inline-flex;align-items:center;justify-content:center;min-width:240px;height:42px;
+      padding:0 12px;border:2px dashed #ddd;border-radius:12px;background:#fff;color:#444;
       cursor:pointer;transition:border-color .12s,box-shadow .12s,color .12s;font-weight:800
     }
     .file:hover{border-color:var(--primary);color:var(--primary)}
     .muted{color:var(--muted)} .ok{color:var(--ok)} .err{color:var(--err)}
-    .chip{background:var(--chip);padding:3px 8px;border-radius:999px;font-size:12px}
+    .chip{background:var(--chip);padding:4px 10px;border-radius:999px;font-size:12px;display:inline-block}
     .label-strong{font-weight:900;margin:2px 0 6px}
 
     .grid{display:grid;gap:12px}
     @media(min-width:980px){ .grid{grid-template-columns:1fr 1fr} }
 
-    .scanbar{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+    .scanbar{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
     .scanbar input{
-      flex:1;min-width:220px;padding:12px;border:2px solid #e8e8e8;border-radius:10px;font-size:16px;outline:none;background:#fff;
+      flex:1;min-width:220px;height:42px;padding:12px;border:2px solid #e8e8e8;border-radius:12px;font-size:16px;outline:none;background:#fff;
       transition:border-color .12s,box-shadow .12s,transform .06s;
     }
     .scanbar input:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(255,87,34,.12)}
     .scanbar input:active{transform:scale(.999)}
 
-    .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:8px;align-items:stretch}
-    .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;justify-content:space-between;min-height:72px}
+    .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:8px;align-items:stretch}
+    .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;justify-content:space-between;min-height:74px}
     .kpi .label{color:var(--muted);font-size:11px;letter-spacing:.35px;text-transform:uppercase;line-height:1;opacity:.95}
-    .kpi .value{margin-top:4px;font-size:18px;font-weight:900;line-height:1.1;white-space:normal;font-variant-numeric:tabular-nums}
+    .kpi .value{margin-top:5px;font-size:18px;font-weight:900;line-height:1.1;white-space:normal;font-variant-numeric:tabular-nums}
     .kpi .value.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.3px}
 
     .tbl-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
     table{width:100%;border-collapse:collapse}
-    th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;font-size:13.5px}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:13.5px}
     th{color:var(--muted);font-weight:800;background:#fafafa;position:sticky;top:0}
     tbody tr{transition:background .12s} tbody tr:hover td{background:#fff5f2}
 
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
     .danger{background:#fef2f2;border:1px solid #fde4e4}
 
     footer{
       text-align:center;
-      padding:10px;
+      padding:12px;
       font-size:13px;
       color:var(--muted);
-      border-top:1px solid #eaeaea;
-      margin-top:16px;
+      border-top:1px solid var(--line);
+      margin-top:18px;
     }
     footer b{color:var(--primary)}
 
@@ -103,26 +108,30 @@
       padding:16px;
     }
     .modal{
-      background:#fff;border-radius:16px;max-width:620px;width:100%;
-      box-shadow:0 15px 40px rgba(0,0,0,.18);overflow:hidden;
+      background:#fff;border-radius:var(--radius-xl);max-width:560px;width:100%;
+      box-shadow:var(--shadow-md);overflow:hidden;
       animation:pop .15s ease-out;
     }
-    @keyframes pop{from{transform:scale(.98);opacity:.8}to{transform:scale(1);opacity:1)}
+    @keyframes pop{from{transform:scale(.98);opacity:.8}to{transform:scale(1);opacity:1}}
     .modal header{padding:14px 16px;border-bottom:1px solid #eee;font-weight:900}
     .modal .content{padding:14px 16px;line-height:1.45}
     .modal .content p{margin:6px 0}
-    .modal .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .modal .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .modal .field{display:flex;flex-direction:column;gap:6px;flex:1}
-    .modal input, .modal select{
-      padding:10px;border:2px solid #eee;border-radius:10px;font-size:14px;outline:none;background:#fff;
+    .modal input,.modal select{
+      height:42px;padding:10px;border:2px solid #eee;border-radius:12px;font-size:14px;outline:none;background:#fff;
     }
-    .modal input:focus, .modal select:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(255,87,34,.12)}
-    .modal footer{display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #eee;padding:12px}
+    .modal input:focus,.modal select:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(255,87,34,.12)}
+    .modal footer{display:flex;gap:10px;justify-content:flex-end;border-top:1px solid #eee;padding:12px}
     .hidden{display:none}
     .warn-badge{color:#d7263d;font-weight:900}
-    .mini{font-size:12px}
-    .history-table{width:100%;border-collapse:collapse}
-    .history-table th, .history-table td{border-bottom:1px solid #eee;padding:8px;text-align:left;font-size:13px}
+
+    /* Bloco histórico de envios */
+    .log{margin-top:8px;border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
+    .log h4{font-size:13px;font-weight:900;margin-bottom:6px;color:#444}
+    .log ul{list-style:none;display:grid;gap:6px;max-height:160px;overflow:auto}
+    .log li{font-size:12.5px;color:#555}
+    .log li .when{color:#888;margin-left:4px}
   </style>
 </head>
 <body>
@@ -206,14 +215,13 @@
     </aside>
   </div>
 
-  <!-- SELEÇÕES / REALOCAÇÕES -->
+  <!-- SELEÇÕES / REALLOCAÇÕES -->
   <section class="card" style="margin-top:12px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
       <div class="label-strong">Realocações selecionadas</div>
       <div class="actions">
         <button class="btn small ghost" id="btnClearSel" title="Limpar tabela">Limpar</button>
         <button class="btn small" id="btnExport">Exportar (.xlsx)</button>
-        <button class="btn small" id="btnHistory" title="Histórico local">Histórico</button>
         <button class="btn small" id="btnSendSheets" title="Enviar para Google Sheets">Enviar p/ Sheets</button>
       </div>
     </div>
@@ -230,6 +238,12 @@
         </thead>
         <tbody></tbody>
       </table>
+    </div>
+
+    <!-- Log de envios -->
+    <div class="log" id="sendLog">
+      <h4>Histórico de envios</h4>
+      <ul id="sendLogList"><li class="muted">Nenhum envio ainda.</li></ul>
     </div>
   </section>
 
@@ -259,47 +273,26 @@
         <input id="sheetUrl" placeholder="Cole aqui o link completo da planilha">
       </div>
 
-      <!-- seleção de aba -->
       <div class="row" style="margin-top:8px">
-        <div class="field" style="flex:1">
-          <label for="sheetTab"><b>Aba</b></label>
-          <div class="row" style="gap:6px">
-            <select id="sheetTab" disabled style="flex:1">
-              <option>— carregue as abas —</option>
-            </select>
-            <button class="btn small" type="button" id="btnLoadTabs">Listar abas</button>
-          </div>
-          <small class="muted">Ao escolher a aba, o campo Range abaixo é atualizado automaticamente.</small>
+        <div class="field">
+          <label for="sheetTab"><b>Escolha a aba de destino</b></label>
+          <select id="sheetTab" disabled>
+            <option value="">Cole a URL para listar as abas…</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="startCell"><b>Célula inicial</b> (ex.: <code>A1</code>)</label>
+          <input id="startCell" value="A1" placeholder="A1">
         </div>
       </div>
 
-      <div class="row" style="margin-top:8px">
-        <div class="field">
-          <label for="sheetRange"><b>Aba/Range</b> (ex.: <code>Página1!A1</code>)</label>
-          <input id="sheetRange" placeholder="Página1!A1" value="Página1!A1">
-        </div>
-      </div>
       <p class="muted" style="margin-top:10px">
-        Serão enviados <b>apenas</b> os dados das colunas <span class="chip">BR &amp; Protocolo</span> e
-        <span class="chip">AT &amp; Protocolo</span> (sem cabeçalho).
+        Serão enviados <b>apenas</b> os valores <span class="chip">BR</span> e <span class="chip">AT</span> (sem cabeçalho).
       </p>
     </div>
     <footer>
       <button class="btn cancel" onclick="closeModal()">Cancelar</button>
       <button class="btn" id="btnDoSend">Enviar</button>
-    </footer>
-  </div>
-
-  <!-- histórico modal -->
-  <div id="historyModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="histTitle">
-    <header id="histTitle">Histórico (local) de envios</header>
-    <div class="content">
-      <div id="historyList"></div>
-      <p class="mini muted" style="margin-top:6px">Histórico fica salvo por usuário (e-mail) no seu navegador. Só sai se você limpar.</p>
-    </div>
-    <footer>
-      <button class="btn cancel" onclick="clearSentHistory()">Limpar histórico</button>
-      <button class="btn cancel" onclick="closeModal()">Fechar</button>
     </footer>
   </div>
 </div>
@@ -312,9 +305,58 @@ const ENFORCE_SHOPEE = true; // false para não travar domínio
 
 let accessToken = null;
 let tokenClient = null;
-let currentEmail = null; // email do usuário logado
+let currentEmail = null;
 
-// Inicializa o tokenClient quando o script do GIS terminar de carregar
+/* ====== Persistência por usuário ====== */
+const LS_PREFIX = 'spr_realloc_history_';
+const LS_SENDLOG = 'spr_realloc_sendlog_';
+const LS_LAST_SHEET = 'spr_realloc_last_sheet_';
+const LS_VEH = 'veh_filter';
+const LS_LAST_BASE = 'last_base_info';
+
+function storageKey(){ return LS_PREFIX + (currentEmail || 'anon'); }
+function sendLogKey(){ return LS_SENDLOG + (currentEmail || 'anon'); }
+function lastSheetKey(){ return LS_LAST_SHEET + (currentEmail || 'anon'); }
+
+function saveHistory(){
+  try{ localStorage.setItem(storageKey(), JSON.stringify(SELECTED)); }catch(_){}
+}
+function loadHistoryForCurrentUser(){
+  try{
+    const raw = localStorage.getItem(storageKey());
+    if(raw){
+      SELECTED = Array.isArray(JSON.parse(raw)) ? JSON.parse(raw) : [];
+      renderSelections();
+    }
+  }catch(_){}
+  renderSendLog();
+}
+function appendSendLog(entry){
+  try{
+    const raw = localStorage.getItem(sendLogKey());
+    const arr = raw ? JSON.parse(raw) : [];
+    arr.unshift(entry);
+    localStorage.setItem(sendLogKey(), JSON.stringify(arr.slice(0,50)));
+  }catch(_){}
+  renderSendLog();
+}
+function renderSendLog(){
+  const ul = $("#sendLogList");
+  ul.innerHTML = '';
+  try{
+    const arr = JSON.parse(localStorage.getItem(sendLogKey())||'[]');
+    if(!arr.length){ ul.innerHTML = '<li class="muted">Nenhum envio ainda.</li>'; return; }
+    for(const e of arr){
+      const li = document.createElement('li');
+      li.innerHTML = `<b>${e.count}</b> itens → <span class="chip">${e.sheetTitle||'?'}</span> <span class="muted">@ ${e.spreadsheetId.slice(0,8)}…</span> <span class="when">${new Date(e.when).toLocaleString()}</span>`;
+      ul.appendChild(li);
+    }
+  }catch(_){
+    ul.innerHTML = '<li class="muted">Nenhum envio ainda.</li>';
+  }
+}
+
+/* ====== OAuth init ====== */
 window.onload = () => {
   if (window.google?.accounts?.oauth2) {
     tokenClient = google.accounts.oauth2.initTokenClient({
@@ -340,7 +382,6 @@ window.onload = () => {
   }
 };
 
-// ensureAuth robusta
 async function ensureAuth(){
   if (!tokenClient) {
     if (!window.google || !google.accounts || !google.accounts.oauth2) {
@@ -353,7 +394,6 @@ async function ensureAuth(){
       callback: () => {}
     });
   }
-
   if (accessToken) return true;
 
   return new Promise((resolve, reject) => {
@@ -384,7 +424,6 @@ async function getUserEmail(token){
   const data = await r.json();
   return String(data.email||'').toLowerCase();
 }
-
 async function gatekeepShopee(token){
   const email = await getUserEmail(token);
   if (!email.endsWith('@shopee.com')) {
@@ -405,10 +444,9 @@ const overlay = $("#overlay");
 const infoModal = $("#infoModal");
 const infoBody = $("#infoBody");
 const sheetsModal = $("#sheetsModal");
-const historyModal = $("#historyModal");
 function openModal(which){
   overlay.style.display = 'flex';
-  [infoModal, sheetsModal, historyModal].forEach(x=>x.classList.add('hidden'));
+  [infoModal, sheetsModal].forEach(x=>x.classList.add('hidden'));
   which.classList.remove('hidden');
 }
 function closeModal(){
@@ -454,43 +492,6 @@ let VEH_FILTER = new Set();
 let LAST_ROW = null;
 let LAST_SAME = [];
 let SELECTED = []; // {brs, at, rota}
-
-/* ========= Persistência por usuário ========= */
-const LS_PREFIX = 'spr_realloc_history_';
-const LS_SENT_PREFIX = 'spr_realloc_sent_';
-function storageKey(){ return LS_PREFIX + (currentEmail || 'anon'); }
-function sentKey(){ return LS_SENT_PREFIX + (currentEmail || 'anon'); }
-
-function saveHistory(){
-  try{ localStorage.setItem(storageKey(), JSON.stringify(SELECTED)); }catch(_){}
-}
-function loadHistoryForCurrentUser(){
-  try{
-    const raw = localStorage.getItem(storageKey());
-    if(raw){
-      SELECTED = Array.isArray(JSON.parse(raw)) ? JSON.parse(raw) : [];
-      renderSelections();
-    }
-  }catch(_){}
-}
-function pushSentHistory(entry){
-  try{
-    const raw = localStorage.getItem(sentKey());
-    const arr = raw ? JSON.parse(raw) : [];
-    arr.unshift(entry);
-    localStorage.setItem(sentKey(), JSON.stringify(arr.slice(0,100)));
-  }catch(_){}
-}
-function readSentHistory(){
-  try{
-    const raw = localStorage.getItem(sentKey());
-    return raw ? JSON.parse(raw) : [];
-  }catch(_){ return []; }
-}
-function clearSentHistory(){
-  try{ localStorage.removeItem(sentKey()); }catch(_){}
-  renderHistory();
-}
 
 /* ========= Excel ========= */
 function parseSheetToObjects(ws){
@@ -547,7 +548,7 @@ function rebuildVehicleFilterFromBase(){
   const set = new Set();
   for(const r of BASE_ROWS){ if(r.veiculo){ set.add(String(r.veiculo).trim()); } }
   VEH_TYPES = Array.from(set).sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
-  const saved = JSON.parse(localStorage.getItem('veh_filter')||'null');
+  const saved = JSON.parse(localStorage.getItem(LS_VEH)||'null');
   VEH_FILTER = new Set(Array.isArray(saved) ? saved : VEH_TYPES);
   renderFilterUI();
 }
@@ -559,11 +560,11 @@ function renderFilterUI(){
     const id = 'veh_'+t.replace(/\W+/g,'_');
     const label = document.createElement('label');
     label.className = 'chipCheck';
-    label.innerHTML = `<input type="checkbox" id="${id}" value="${t}" ${VEH_FILTER.has(t)?'checked':''}><span>${t}</span>`;
+    label.innerHTML = `<input type="checkbox" id="${id}" value="${t}" ${VEH_FILTER.has(t)?'checked':''}><span class="chip">${t}</span>`;
     wrap.appendChild(label);
     label.querySelector('input').addEventListener('change', e=>{
       if(e.target.checked) VEH_FILTER.add(t); else VEH_FILTER.delete(t);
-      localStorage.setItem('veh_filter', JSON.stringify(Array.from(VEH_FILTER)));
+      localStorage.setItem(LS_VEH, JSON.stringify(Array.from(VEH_FILTER)));
       rerenderSame();
     });
   });
@@ -572,7 +573,7 @@ function renderFilterUI(){
   $("#btnAll").onclick = ()=>{ VEH_FILTER = new Set(VEH_TYPES); persistAndSync(); };
   $("#btnNone").onclick= ()=>{ VEH_FILTER.clear(); persistAndSync(); };
   function persistAndSync(){
-    localStorage.setItem('veh_filter', JSON.stringify(Array.from(VEH_FILTER)));
+    localStorage.setItem(LS_VEH, JSON.stringify(Array.from(VEH_FILTER)));
     wrap.querySelectorAll('input[type="checkbox"]').forEach(ch=> ch.checked = VEH_FILTER.has(ch.value));
     rerenderSame();
   }
@@ -603,7 +604,7 @@ async function handleLoad(inputFile){
 
     const when = new Date().toLocaleString();
     $("#loadMsg").innerHTML = `<span class="ok">Arquivo "<b>${file.name}</b>" lido (${BASE_ROWS.length} linhas) em ${when}.</span>`;
-    localStorage.setItem('last_base_info', JSON.stringify({name:file.name, rows:BASE_ROWS.length, when:Date.now()}));
+    localStorage.setItem(LS_LAST_BASE, JSON.stringify({name:file.name, rows:BASE_ROWS.length, when:Date.now()}));
     focusScan();
   }catch(e){
     showInfo('Falha ao ler o Excel', e.message);
@@ -753,91 +754,203 @@ async function gidToSheetTitle(spreadsheetId, gid){
   return sheet ? sheet.properties.title : null;
 }
 
-/* Lista as abas do link e preenche o select */
+/* Listar abas da planilha no modal */
 async function listTabsFromUrl(){
   const link = $("#sheetUrl").value.trim();
-  if(!link){ showInfo('URL necessária', 'Cole o link completo da planilha do Google.'); return; }
-  const spreadsheetId = parseSpreadsheetId(link);
-  if(!spreadsheetId){ showInfo('URL inválida', 'Precisa ser um link de <b>docs.google.com/spreadsheets</b>.'); return; }
+  const select = $("#sheetTab");
+  select.innerHTML = '<option value="">Carregando abas…</option>';
+  select.disabled = true;
 
-  await ensureAuth();
+  const spreadsheetId = parseSpreadsheetId(link);
+  if(!spreadsheetId){
+    select.innerHTML = '<option value="">URL inválida</option>';
+    return;
+  }
 
   try{
-    const res = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets(properties(sheetId,title))`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
+    await ensureAuth();
+    const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
     if(!res.ok){
-      const txt = await res.text();
-      throw new Error(txt);
+      select.innerHTML = '<option value="">Falha ao listar abas</option>';
+      return;
     }
     const data = await res.json();
-    const sel = $("#sheetTab");
-    sel.innerHTML = '';
-    (data.sheets||[]).forEach(s=>{
-      const opt = document.createElement('option');
-      opt.value = s.properties.title;
-      opt.textContent = s.properties.title;
-      opt.dataset.sheetId = s.properties.sheetId;
-      sel.appendChild(opt);
-    });
-    sel.disabled = !(sel.options.length);
-
-    // Se o link tiver gid, tenta pré-selecionar a aba correspondente
-    const gid = parseGid(link);
-    if(gid !== null){
-      for(const o of sel.options){
-        if(Number(o.dataset.sheetId) === gid){ sel.value = o.value; break; }
-      }
+    const sheets = (data.sheets||[]).map(s => s.properties?.title).filter(Boolean);
+    if(!sheets.length){
+      select.innerHTML = '<option value="">Sem abas visíveis</option>';
+      return;
     }
+    select.innerHTML = sheets.map(t => `<option value="${t}">${t}</option>`).join('');
+    select.disabled = false;
 
-    // Atualiza o range automaticamente
-    if(sel.value){ $("#sheetRange").value = `${sel.value}!A1`; }
-  }catch(err){
-    console.error(err);
-    showInfo('Erro ao listar abas', '<small>'+ (err?.message||err) +'</small>');
+    // Tenta lembrar a última aba usada
+    try{
+      const last = JSON.parse(localStorage.getItem(lastSheetKey())||'null');
+      if(last && last.spreadsheetId === spreadsheetId && sheets.includes(last.sheetTitle)){
+        select.value = last.sheetTitle;
+        $("#startCell").value = last.startCell || 'A1';
+      }
+    }catch(_){}
+  }catch(_){
+    select.innerHTML = '<option value="">Erro ao carregar abas</option>';
   }
 }
 
 /* abre modal de envio */
 function openSheetsModal(){
-  $("#sheetUrl").value = $("#sheetUrl").value || '';
-  $("#sheetRange").value = 'Página1!A1';
-  $("#sheetTab").innerHTML = '<option>— carregue as abas —</option>';
+  $("#sheetUrl").value = '';
+  $("#sheetTab").innerHTML = '<option value="">Cole a URL para listar as abas…</option>';
   $("#sheetTab").disabled = true;
-  openModal(sheetsModal);
+  $("#startCell").value = 'A1';
 
-  if($("#sheetUrl").value.trim()) listTabsFromUrl();
+  // Prefill com último uso deste usuário (se existir)
+  try{
+    const last = JSON.parse(localStorage.getItem(lastSheetKey())||'null');
+    if(last){
+      $("#sheetUrl").value = last.url || '';
+      if(last.url) listTabsFromUrl();
+    }
+  }catch(_){}
+
+  openModal(sheetsModal);
 }
 
-/* envia pro sheets — APENAS DADOS (sem cabeçalho) + histórico de envio */
+/* envia pro sheets — apenas BR e AT, sem cabeçalho */
 async function doSendToSheets(){
   if(!SELECTED.length){ showInfo('Envio', 'Nenhuma realocação na tabela.'); return; }
 
   const link = $("#sheetUrl").value.trim();
   if(!link){ showInfo('URL inválida', 'Cole o link completo da planilha do Google.'); return; }
   const spreadsheetId = parseSpreadsheetId(link);
-  if(!spreadsheetId){ showInfo('URL inválida', 'Precisa ser de <b>docs.google.com/spreadsheets</b>.'); return; }
+  if(!spreadsheetId){ showInfo('URL inválida', 'Precisa ser um link de <b>docs.google.com/spreadsheets</b>.'); return; }
 
   await ensureAuth();
 
-  let range = $("#sheetRange").value.trim();
-  if(!range){
-    try{
-      const gid = parseGid(link);
-      if(gid !== null){
-        const title = await gidToSheetTitle(spreadsheetId, gid);
-        if(title) range = `${title}!A1`;
-      }
-    }catch(_){}
-    if(!range){ showInfo('Range obrigatório', 'Informe a aba/range, ex.: <b>Página1!A1</b>.'); return; }
+  const sheetTitle = $("#sheetTab").value.trim();
+  const startCell  = $("#startCell").value.trim() || 'A1';
+  if(!sheetTitle){
+    showInfo('Aba obrigatória', 'Selecione a aba de destino.');
+    return;
   }
 
-  // >>> ALTERAÇÃO: envia apenas dados (sem cabeçalho)
-  const values = SELECTED.map(it=>[it.brs || '', it.at || '']);
+  // Persistir última escolha
+  try{
+    localStorage.setItem(lastSheetKey(), JSON.stringify({
+      url: link, spreadsheetId, sheetTitle, startCell
+    }));
+  }catch(_){}
+
+  const range = `${sheetTitle}!${startCell}`;
+
+  // Apenas os dados (sem cabeçalho)
+  const values = SELECTED.map(it=>[it.brs||'', it.at||'']);
 
   const apiUrl =
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreads heetId}`; // intentional error? Wait
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}` +
+    `/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+
+  try{
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ values })
+    });
+    if(!res.ok){
+      const txt = await res.text();
+      throw new Error(txt);
+    }
+    closeModal();
+    showInfo('Sucesso', 'Enviado com sucesso para o Sheets!');
+
+    // Log de envio
+    appendSendLog({ when: Date.now(), count: values.length, spreadsheetId, sheetTitle });
+  }catch(err){
+    console.error(err);
+    showInfo('Falha ao enviar', 'Verifique permissões e se a API do Sheets está ativa.<br><small>'+ (err?.message||err) +'</small>');
+  }
+}
+
+/* ========= Ações ========= */
+function handleScan(){
+  const input = $("#scan");
+  const code = input.value.trim();
+  if(!code){ showInfo('Busca', 'Digite/escaneie um <b>BRS</b>.'); return; }
+  if(!INDEX_BRS.size){ showInfo('Base vazia', 'Carregue a planilha primeiro.'); return; }
+
+  const row = INDEX_BRS.get(normBRS(code));
+  if(!row){ showInfo('Não encontrado', 'Código não localizado na base.'); input.value=''; focusScan(); return; }
+
+  const same = findSameNeighborhoodGrouped(row.bairro);
+  LAST_ROW = row; LAST_SAME = same;
+
+  renderResult(row, same);
+  $("#scanMsg").innerHTML = '<span class="ok">Pesquisa concluída.</span>';
+  input.value=''; focusScan();
+}
+
+function resetBase(){
+  BASE_ROWS = []; INDEX_BRS.clear(); INDEX_BAIRRO_CLUSTER.clear(); INDEX_TOTAL_BY_CAGE.clear();
+  LAST_ROW=null; LAST_SAME=[];
+  $("#baseInfo").textContent = 'nenhuma carregada';
+  $("#sheetInfo").textContent = '';
+  $("#scan").disabled = true; $("#btnScan").disabled = true; $("#scan").value='';
+  $("#resultLeft").style.display='none';
+  $("#resultRight").style.display='none';
+  $("#placeholderRight").style.display='block';
+  $("#scanMsg").textContent = 'Carregue a planilha para habilitar a busca.';
+  clearSelections();
+}
+
+/* ========= Drag & Drop ========= */
+(function setupDnd(){
+  const dz = document.getElementById('dropzone');
+  const input = document.getElementById('file');
+  const prevent = e=>{e.preventDefault(); e.stopPropagation();};
+  ['dragenter','dragover','dragleave','drop'].forEach(ev=> dz.addEventListener(ev, prevent));
+  dz.addEventListener('dragenter', ()=> dz.classList.add('dragover'));
+  dz.addEventListener('dragover',  ()=> dz.classList.add('dragover'));
+  dz.addEventListener('dragleave', ()=> dz.classList.remove('dragover'));
+  dz.addEventListener('drop', (e)=>{
+    dz.classList.remove('dragover');
+    const f = e.dataTransfer?.files?.[0];
+    if(f){ input.files = e.dataTransfer.files; handleLoad(f); }
+  });
+})();
+
+/* ========= Listeners ========= */
+document.addEventListener('DOMContentLoaded', ()=>{
+  $("#btnLoad").addEventListener("click", ()=>handleLoad());
+  $("#btnScan").addEventListener("click", handleScan);
+  $("#scan").addEventListener("keydown", e=>{ if(e.key === "Enter"){ e.preventDefault(); handleScan(); } });
+  $("#btnReset").addEventListener("click", resetBase);
+
+  $("#btnExport").addEventListener("click", exportSelections);
+  $("#btnClearSel").addEventListener("click", clearSelections);
+
+  // Abre modal de envio
+  $("#btnSendSheets").addEventListener("click", openSheetsModal);
+  // Quando colar a URL, lista abas (debounce simples no blur/change)
+  $("#sheetUrl").addEventListener("change", listTabsFromUrl);
+  $("#sheetUrl").addEventListener("blur", listTabsFromUrl);
+  // Confirma envio a partir do modal
+  $("#btnDoSend").addEventListener("click", doSendToSheets);
+
+  // Carrega histórico “anon” (rascunho) até o usuário logar
+  loadHistoryForCurrentUser();
+
+  // Restaura info última base lida (cosmético)
+  const last = JSON.parse(localStorage.getItem(LS_LAST_BASE) || 'null');
+  if (last) {
+    const when = new Date(last.when || Date.now()).toLocaleString();
+    $("#baseInfo").textContent =
+      `${last.rows} linhas carregadas (última: ${last.name} em ${when})`;
+  }
+});
 </script>
 </body>
 </html>
