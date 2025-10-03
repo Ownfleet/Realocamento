@@ -9,11 +9,15 @@
   <!-- SheetJS -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
+  <!-- Google Identity Services (OAuth popup) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <style>
     :root{
       --primary:#ff5722; --primary-2:#e14d1f;
       --bg:#f7f7f7; --card:#fff; --txt:#222; --muted:#666;
       --ok:#18a957; --err:#d7263d; --chip:#ffe8e0; --line:#eaeaea;
+      --overlay: rgba(0,0,0,.35);
     }
     *{box-sizing:border-box;margin:0;padding:0}
     body{
@@ -42,6 +46,8 @@
     .btn.secondary{background:#2f2f2f;box-shadow:0 3px 10px rgba(0,0,0,.18)}
     .btn.secondary:hover{background:#000}
     .btn.ghost{background:#fff;color:#333;border:2px solid #e8e8e8;box-shadow:none}
+    .btn.cancel{background:#e8e8e8;color:#222;box-shadow:none}
+    .btn.full{width:100%}
 
     .uploader{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .file{
@@ -54,7 +60,6 @@
     .chip{background:var(--chip);padding:3px 8px;border-radius:999px;font-size:12px}
     .label-strong{font-weight:900;margin:2px 0 6px}
 
-    /* layout em 2 colunas compacto */
     .grid{display:grid;gap:12px}
     @media(min-width:980px){ .grid{grid-template-columns:1fr 1fr} }
 
@@ -66,34 +71,55 @@
     .scanbar input:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(255,87,34,.12)}
     .scanbar input:active{transform:scale(.999)}
 
-    /* KPIs compactos */
     .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:8px;align-items:stretch}
     .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;justify-content:space-between;min-height:72px}
     .kpi .label{color:var(--muted);font-size:11px;letter-spacing:.35px;text-transform:uppercase;line-height:1;opacity:.95}
     .kpi .value{margin-top:4px;font-size:18px;font-weight:900;line-height:1.1;white-space:normal;font-variant-numeric:tabular-nums}
     .kpi .value.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.3px}
 
-    /* Tabelas */
     .tbl-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
     table{width:100%;border-collapse:collapse}
     th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;font-size:13.5px}
     th{color:var(--muted);font-weight:800;background:#fafafa;position:sticky;top:0}
     tbody tr{transition:background .12s} tbody tr:hover td{background:#fff5f2}
 
-    /* miscelânea */
     .actions{display:flex;gap:8px;flex-wrap:wrap}
     .danger{background:#fef2f2;border:1px solid #fde4e4}
 
-    /* Rodapé */
     footer{
       text-align:center;
       padding:10px;
       font-size:13px;
       color:var(--muted);
-      border-top:1px solid var(--line);
+      border-top:1px solid #eaeaea;
       margin-top:16px;
     }
     footer b{color:var(--primary)}
+
+    /* ========== Modal ========== */
+    .modal-overlay{
+      position:fixed;inset:0;background:var(--overlay);
+      display:none;align-items:center;justify-content:center;z-index:50;
+      padding:16px;
+    }
+    .modal{
+      background:#fff;border-radius:16px;max-width:520px;width:100%;
+      box-shadow:0 15px 40px rgba(0,0,0,.18);overflow:hidden;
+      animation:pop .15s ease-out;
+    }
+    @keyframes pop{from{transform:scale(.98);opacity:.8}to{transform:scale(1);opacity:1}}
+    .modal header{padding:14px 16px;border-bottom:1px solid #eee;font-weight:900}
+    .modal .content{padding:14px 16px;line-height:1.45}
+    .modal .content p{margin:6px 0}
+    .modal .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .modal .field{display:flex;flex-direction:column;gap:6px;flex:1}
+    .modal input{
+      padding:10px;border:2px solid #eee;border-radius:10px;font-size:14px;outline:none;background:#fff;
+    }
+    .modal input:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(255,87,34,.12)}
+    .modal footer{display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #eee;padding:12px}
+    .hidden{display:none}
+    .warn-badge{color:#d7263d;font-weight:900}
   </style>
 </head>
 <body>
@@ -111,7 +137,7 @@
   </section>
 
   <div class="grid" style="margin-top:12px">
-    <!-- COLUNA ESQUERDA: Base + Scan + KPIs -->
+    <!-- COLUNA ESQUERDA -->
     <section class="card">
       <div class="uploader" style="justify-content:space-between">
         <div><b>Base:</b> <span id="baseInfo" class="muted">nenhuma carregada</span></div>
@@ -143,7 +169,6 @@
           <div id="kEndereco" class="card" style="padding:10px;border:1px solid #eee"></div>
         </div>
 
-        <!-- Filtro por tipo de veículo -->
         <div id="filterBar" style="margin-top:12px; display:none">
           <div class="label-strong">Filtrar por <span class="chip">Planned Vehicle Type</span></div>
           <div id="vehicleChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
@@ -185,6 +210,7 @@
       <div class="actions">
         <button class="btn small ghost" id="btnClearSel" title="Limpar tabela">Limpar</button>
         <button class="btn small" id="btnExport">Exportar (.xlsx)</button>
+        <button class="btn small" id="btnSendSheets" title="Enviar para Google Sheets">Enviar p/ Sheets</button>
       </div>
     </div>
     <div class="muted" id="selInfo" style="margin-top:6px">Sem itens.</div>
@@ -209,7 +235,131 @@
   Criado por <b>Richard Lucas – LSP 12 Adriana</b>
 </footer>
 
+<!-- ========= Modals ========= -->
+<div id="overlay" class="modal-overlay">
+  <!-- info modal -->
+  <div id="infoModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <header id="infoTitle">Informação</header>
+    <div class="content" id="infoBody"></div>
+    <footer>
+      <button class="btn cancel" onclick="closeModal()">Fechar</button>
+    </footer>
+  </div>
+
+  <!-- sheets form modal -->
+  <div id="sheetsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="sheetsTitle">
+    <header id="sheetsTitle">Enviar para Google Sheets</header>
+    <div class="content">
+      <div class="field">
+        <label for="sheetUrl"><b>URL da planilha</b> (docs.google.com/spreadsheets/...)</label>
+        <input id="sheetUrl" placeholder="Cole aqui o link completo da planilha">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="field">
+          <label for="sheetRange"><b>Aba/Range</b> (ex.: <code>Página1!A1</code>)</label>
+          <input id="sheetRange" placeholder="Página1!A1" value="Página1!A1">
+        </div>
+      </div>
+      <p class="muted" style="margin-top:10px">
+        Serão enviados <b>apenas</b> as colunas <span class="chip">BR &amp; Protocolo</span> e
+        <span class="chip">AT &amp; Protocolo</span>.
+      </p>
+    </div>
+    <footer>
+      <button class="btn cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn" id="btnDoSend">Enviar</button>
+    </footer>
+  </div>
+</div>
+
 <script>
+/* ====== OAuth (GIS) ====== */
+const CLIENT_ID = '800747129509-98obq6okp3t6prjr9u1j2m5od2ip857n.apps.googleusercontent.com';
+const SCOPES = 'openid email https://www.googleapis.com/auth/spreadsheets';
+const ENFORCE_SHOPEE = true; // false para não travar domínio
+
+let accessToken = null;
+let tokenClient = null;
+let currentEmail = null; // email do usuário logado
+
+// Inicializa o tokenClient quando o script do GIS terminar de carregar
+window.onload = () => {
+  if (window.google?.accounts?.oauth2) {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: async (resp) => {
+        if (resp.error) { showInfo('Erro OAuth', 'Erro: ' + resp.error); return; }
+        accessToken = resp.access_token;
+
+        try{
+          if (ENFORCE_SHOPEE) await gatekeepShopee(accessToken);
+          currentEmail = await getUserEmail(accessToken);
+          loadHistoryForCurrentUser();
+        }catch(e){
+          showInfo('Acesso negado', e.message || e);
+          google.accounts.oauth2.revoke(accessToken);
+          accessToken = null;
+          currentEmail = null;
+          return;
+        }
+      }
+    });
+  }
+};
+
+// ensureAuth robusta
+async function ensureAuth(){
+  if (!tokenClient) {
+    if (!window.google || !google.accounts || !google.accounts.oauth2) {
+      showInfo('Aguarde', 'Google Identity ainda não carregou. Tente novamente em 1–2 segundos.');
+      throw new Error('GIS não carregado');
+    }
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: () => {}
+    });
+  }
+
+  if (accessToken) return true;
+
+  return new Promise((resolve, reject) => {
+    tokenClient.callback = async (resp) => {
+      if (resp.error) return reject(resp);
+      accessToken = resp.access_token;
+      try {
+        if (ENFORCE_SHOPEE) await gatekeepShopee(accessToken);
+        currentEmail = await getUserEmail(accessToken);
+        loadHistoryForCurrentUser();
+        resolve(true);
+      } catch (e) {
+        google.accounts.oauth2.revoke(accessToken);
+        accessToken = null;
+        currentEmail = null;
+        reject(e);
+      }
+    };
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  });
+}
+
+async function getUserEmail(token){
+  const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!r.ok) throw new Error('Falha ao obter userinfo');
+  const data = await r.json();
+  return String(data.email||'').toLowerCase();
+}
+
+async function gatekeepShopee(token){
+  const email = await getUserEmail(token);
+  if (!email.endsWith('@shopee.com')) {
+    throw new Error('Acesso permitido apenas para contas @shopee.com');
+  }
+}
+
 /* ========= Utilidades ========= */
 const stripAccents = (s='') => String(s).normalize('NFD').replace(/\p{Diacritic}/gu,'');
 const norm = (s='') => stripAccents(String(s).trim()).toLowerCase();
@@ -218,7 +368,26 @@ const isExcel = f => /\.(xlsx|xls)$/i.test(f?.name||'');
 const $ = s => document.querySelector(s);
 function focusScan(){ setTimeout(()=>$("#scan").focus(), 0); }
 
-/* ========= Mapeamento ========= */
+/* ========= Modal helpers ========= */
+const overlay = $("#overlay");
+const infoModal = $("#infoModal");
+const infoBody = $("#infoBody");
+const sheetsModal = $("#sheetsModal");
+function openModal(which){
+  overlay.style.display = 'flex';
+  [infoModal, sheetsModal].forEach(x=>x.classList.add('hidden'));
+  which.classList.remove('hidden');
+}
+function closeModal(){
+  overlay.style.display = 'none';
+}
+function showInfo(title, html){
+  $("#infoTitle").textContent = title || 'Informação';
+  infoBody.innerHTML = html || '';
+  openModal(infoModal);
+}
+
+/* ========= Mapeamento/normalização ========= */
 const COLS_EXT = {
   brs:        ['SPX TN','BRS','Codigo','Código','Code','Tracking','AWB'],
   endereco:   ['Destination Address','Address','REGIAO','REGIÃO'],
@@ -246,12 +415,28 @@ function pick(row, names){
 let BASE_ROWS = [];
 let INDEX_BRS = new Map();
 let INDEX_BAIRRO_CLUSTER = new Map();
-let INDEX_TOTAL_BY_CAGE = new Map(); // NOVO: total por rota (toda a base)
+let INDEX_TOTAL_BY_CAGE = new Map();
 let VEH_TYPES = [];
 let VEH_FILTER = new Set();
 let LAST_ROW = null;
 let LAST_SAME = [];
 let SELECTED = []; // {brs, at, rota}
+
+/* ========= Persistência por usuário ========= */
+const LS_PREFIX = 'spr_realloc_history_';
+function storageKey(){ return LS_PREFIX + (currentEmail || 'anon'); }
+function saveHistory(){
+  try{ localStorage.setItem(storageKey(), JSON.stringify(SELECTED)); }catch(_){}
+}
+function loadHistoryForCurrentUser(){
+  try{
+    const raw = localStorage.getItem(storageKey());
+    if(raw){
+      SELECTED = Array.isArray(JSON.parse(raw)) ? JSON.parse(raw) : [];
+      renderSelections();
+    }
+  }catch(_){}
+}
 
 /* ========= Excel ========= */
 function parseSheetToObjects(ws){
@@ -280,7 +465,7 @@ function normalizeFromExt(row){
     veiculo:  pick(row, COLS_EXT.veiculo),
     rota:     pick(row, COLS_EXT.cluster)
   };
-  if(/^\d+(\.\d+)?$/.test(out.at)) out.at = formatMaybeDate(out.at); // evita datas
+  if(/^\d+(\.\d+)?$/.test(out.at)) out.at = formatMaybeDate(out.at);
   return out;
 }
 
@@ -290,7 +475,6 @@ function buildIndexes(){
   for(const r of BASE_ROWS){
     if(r.brs) INDEX_BRS.set(normBRS(r.brs), r);
 
-    // por bairro -> rotas
     if(r.bairro){
       const keyB = stripAccents(String(r.bairro)).trim();
       if(!INDEX_BAIRRO_CLUSTER.has(keyB)) INDEX_BAIRRO_CLUSTER.set(keyB, new Map());
@@ -299,8 +483,6 @@ function buildIndexes(){
       if(!mapC.has(keyC)) mapC.set(keyC, []);
       mapC.get(keyC).push(r);
     }
-
-    // total por rota (toda a base)
     const cage = r.rota || '(sem rota)';
     INDEX_TOTAL_BY_CAGE.set(cage, (INDEX_TOTAL_BY_CAGE.get(cage)||0) + 1);
   }
@@ -345,8 +527,8 @@ function renderFilterUI(){
 /* ========= Carregar arquivo ========= */
 async function handleLoad(inputFile){
   const file = inputFile || $("#file").files[0];
-  if(!file){ $("#loadMsg").innerHTML = '<span class="err">Selecione um arquivo .xlsx</span>'; return; }
-  if(!isExcel(file)){ $("#loadMsg").innerHTML = '<span class="err">Arquivo inválido. Use .xlsx/.xls</span>'; return; }
+  if(!file){ showInfo('Arquivo', 'Selecione um arquivo <b>.xlsx</b>.'); return; }
+  if(!isExcel(file)){ showInfo('Arquivo inválido', 'Use arquivos <b>.xlsx</b> ou <b>.xls</b>.'); return; }
   $("#loadMsg").textContent = 'Lendo arquivo...';
 
   try{
@@ -370,13 +552,12 @@ async function handleLoad(inputFile){
     localStorage.setItem('last_base_info', JSON.stringify({name:file.name, rows:BASE_ROWS.length, when:Date.now()}));
     focusScan();
   }catch(e){
-    $("#loadMsg").innerHTML = `<span class="err">Falha ao ler o Excel: ${e.message}</span>`;
+    showInfo('Falha ao ler o Excel', e.message);
   }
 }
 
 /* ========= Helpers ========= */
 function pickRepresentativeAT(rows){
-  // AT mais frequente na rota
   const freq = new Map();
   for(const r of rows){
     const key = (r.at || '').trim();
@@ -398,7 +579,7 @@ function findSameNeighborhoodGrouped(bairro){
 
 function renderResult(row, same){
   const sameFiltered = same
-    .filter(g => (g.cage||'') !== (row.rota||'')) // não mostrar a própria rota do BRS
+    .filter(g => (g.cage||'') !== (row.rota||'')) 
     .filter(g => !VEH_FILTER.size || VEH_FILTER.has((g.rows[0].veiculo||'').trim()));
 
   $("#resultLeft").style.display="block";
@@ -415,21 +596,20 @@ function renderResult(row, same){
 
   const tbody = $("#sameTable tbody"); tbody.innerHTML = "";
   sameFiltered.forEach(g=>{
-    const qtdNoBairro = g.rows.length;         // quantidade na região (bairro)
+    const qtdNoBairro = g.rows.length;
     const veiculo = g.rows[0].veiculo || '—';
     const isFiorino = /fiorino/i.test(veiculo);
 
-    // TOTAL no Corridor Cage (toda a base)
     const totalCage = INDEX_TOTAL_BY_CAGE.get(g.cage) || qtdNoBairro;
 
+    // Aviso quando poucos pacotes
     let statusHtml = '';
     if(qtdNoBairro <= 3 && !isFiorino){
-      statusHtml = `<span class="err">⚠️ ${qtdNoBairro}</span>`;
+      statusHtml = `<span class="warn-badge" title="Poucos pacotes neste bairro">⚠️ ${qtdNoBairro} <small>(poucos pacotes)</small></span>`;
     }else{
-      statusHtml = `<span class="ok">${qtdNoBairro}</span>`;
+      statusHtml = `<span class="ok" title="Quantidade no bairro">${qtdNoBairro}</span>`;
     }
 
-    // botão Adicionar
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td><span class="chip">${g.cage}</span></td>
@@ -439,7 +619,6 @@ function renderResult(row, same){
       <td>${statusHtml}</td>
       <td><button class="btn small" data-cage="${g.cage}">Adicionar nesta rota</button></td>
     `;
-    // bind
     tr.querySelector('button').addEventListener('click', ()=>{
       if(!LAST_ROW) return;
       const atTarget = pickRepresentativeAT(g.rows);
@@ -472,17 +651,26 @@ function renderSelections(){
     `;
     tr.querySelector('button').addEventListener('click', ()=>{
       SELECTED.splice(idx,1);
+      saveHistory();
       renderSelections();
     });
     tbody.appendChild(tr);
   });
   $("#selInfo").textContent = SELECTED.length ? `${SELECTED.length} item(ns)` : 'Sem itens.';
 }
-function addSelection({brs, at, rota}){ SELECTED.push({brs, at, rota}); renderSelections(); }
-function clearSelections(){ SELECTED = []; renderSelections(); }
+function addSelection({brs, at, rota}){
+  SELECTED.push({brs, at, rota});
+  saveHistory();
+  renderSelections();
+}
+function clearSelections(){
+  SELECTED = [];
+  try{ localStorage.removeItem(storageKey()); }catch(_){}
+  renderSelections();
+}
 
 function exportSelections(){
-  if(!SELECTED.length){ alert('Nada para exportar.'); return; }
+  if(!SELECTED.length){ showInfo('Exportação', 'Nada para exportar.'); return; }
   const header = ['BR & Protocolo','AT & Protocolo','Rota'];
   const rows = SELECTED.map(it=>[it.brs||'', it.at||'', it.rota||'']);
   const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
@@ -491,15 +679,95 @@ function exportSelections(){
   XLSX.writeFile(wb, `realocacoes_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
+/* ========= Google Sheets (REST) ========= */
+function parseSpreadsheetId(url){
+  const m = String(url).match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  return m ? m[1] : null;
+}
+function parseGid(url){
+  const m = String(url).match(/[?&#]gid=(\d+)/);
+  return m ? parseInt(m[1],10) : null;
+}
+async function gidToSheetTitle(spreadsheetId, gid){
+  if(gid === null || gid === undefined) return null;
+  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  if(!res.ok) return null;
+  const data = await res.json();
+  const sheet = (data.sheets||[]).find(s => s.properties && s.properties.sheetId === gid);
+  return sheet ? sheet.properties.title : null;
+}
+
+/* abre modal de envio */
+function openSheetsModal(){
+  $("#sheetUrl").value = '';
+  $("#sheetRange").value = 'Página1!A1';
+  openModal(sheetsModal);
+}
+
+/* envia pro sheets usando os dados do modal — somente 2 colunas */
+async function doSendToSheets(){
+  if(!SELECTED.length){ showInfo('Envio', 'Nenhuma realocação na tabela.'); return; }
+
+  const link = $("#sheetUrl").value.trim();
+  if(!link){ showInfo('URL inválida', 'Cole o link completo da planilha do Google.'); return; }
+  const spreadsheetId = parseSpreadsheetId(link);
+  if(!spreadsheetId){ showInfo('URL inválida', 'Precisa ser um link de <b>docs.google.com/spreadsheets</b>.'); return; }
+
+  await ensureAuth();
+
+  let range = $("#sheetRange").value.trim();
+  if(!range){
+    try{
+      const gid = parseGid(link);
+      if(gid !== null){
+        const title = await gidToSheetTitle(spreadsheetId, gid);
+        if(title) range = `${title}!A1`;
+      }
+    }catch(_){}
+    if(!range){ showInfo('Range obrigatório', 'Informe a aba/range, ex.: <b>Página1!A1</b>.'); return; }
+  }
+
+  const values = [
+    ['BR & Protocolo','AT & Protocolo'],
+    ...SELECTED.map(it=>[it.brs||'', it.at||''])
+  ];
+
+  const apiUrl =
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}` +
+    `/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+
+  try{
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ values })
+    });
+    if(!res.ok){
+      const txt = await res.text();
+      throw new Error(txt);
+    }
+    closeModal();
+    showInfo('Sucesso', 'Enviado com sucesso para o Sheets!');
+  }catch(err){
+    console.error(err);
+    showInfo('Falha ao enviar', 'Verifique permissões e se a API do Sheets está ativa.<br><small>'+ (err?.message||err) +'</small>');
+  }
+}
+
 /* ========= Ações ========= */
 function handleScan(){
   const input = $("#scan");
   const code = input.value.trim();
-  if(!code){ $("#scanMsg").innerHTML = '<span class="err">Digite/escaneie um BRS.</span>'; return; }
-  if(!INDEX_BRS.size){ $("#scanMsg").innerHTML = '<span class="err">Carregue a base primeiro.</span>'; return; }
+  if(!code){ showInfo('Busca', 'Digite/escaneie um <b>BRS</b>.'); return; }
+  if(!INDEX_BRS.size){ showInfo('Base vazia', 'Carregue a planilha primeiro.'); return; }
 
   const row = INDEX_BRS.get(normBRS(code));
-  if(!row){ $("#scanMsg").innerHTML = '<span class="err">Código não encontrado na base.</span>'; input.value=''; focusScan(); return; }
+  if(!row){ showInfo('Não encontrado', 'Código não localizado na base.'); input.value=''; focusScan(); return; }
 
   const same = findSameNeighborhoodGrouped(row.bairro);
   LAST_ROW = row; LAST_SAME = same;
@@ -548,10 +816,19 @@ document.addEventListener('DOMContentLoaded', ()=>{
   $("#btnExport").addEventListener("click", exportSelections);
   $("#btnClearSel").addEventListener("click", clearSelections);
 
-  const last = JSON.parse(localStorage.getItem('last_base_info')||'null');
-  if(last){
-    const when = new Date(last.when||Date.now()).toLocaleString();
-    $("#baseInfo").textContent = `${last.rows} linhas carregadas (última: ${last.name} em ${when})`;
+  // Abre modal de envio
+  $("#btnSendSheets").addEventListener("click", openSheetsModal);
+  // Confirma envio a partir do modal
+  $("#btnDoSend").addEventListener("click", doSendToSheets);
+
+  // Carrega histórico “anon” (rascunho) até o usuário logar
+  loadHistoryForCurrentUser();
+
+  const last = JSON.parse(localStorage.getItem('last_base_info') || 'null');
+  if (last) {
+    const when = new Date(last.when || Date.now()).toLocaleString();
+    $("#baseInfo").textContent =
+      `${last.rows} linhas carregadas (última: ${last.name} em ${when})`;
   }
 });
 </script>
