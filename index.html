@@ -18,8 +18,7 @@
       --primary:#ff5722; --primary-2:#e14d1f;
       --bg:#f6f7fb; --card:#ffffff; --txt:#1e1f23; --muted:#6b7280;
       --ok:#16a34a; --err:#dc2626; --chip:#fff0ea; --line:#e8eaf0;
-      --overlay: rgba(0,0,0,.38);
-      --glass: rgba(255,255,255,.7);
+      --overlay: rgba(0,0,0,.52);
       --shadow-sm: 0 6px 18px rgba(9,12,15,.06);
       --shadow-md: 0 20px 36px rgba(9,12,15,.12);
       --radius-2xl:18px; --radius-xl:16px; --radius-lg:14px; --radius:12px;
@@ -123,48 +122,45 @@
     }
     footer b{color:var(--primary)}
 
-    /* ========== Modal ========== */
+    /* ========== Modal base ========== */
     .modal-overlay{
       position:fixed;inset:0;background:var(--overlay);
-      display:none;align-items:center;justify-content:center;z-index:50;
+      display:none;align-items:center;justify-content:center;z-index:1000; /* bem acima de tudo */
       padding:16px;
     }
     .modal{
-      background:var(--card);border-radius:var(--radius-2xl);max-width:640px;width:100%;
+      background:var(--card);border-radius:var(--radius-2xl);max-width:760px;width:100%;
       box-shadow:var(--shadow-md);overflow:hidden;border:1px solid var(--line);
       animation:pop .15s ease-out;
     }
     @keyframes pop{from{transform:scale(.98);opacity:.8}to{transform:scale(1);opacity:1}}
     .modal header{padding:14px 16px;border-bottom:1px solid #eee;font-weight:900;display:flex;align-items:center;gap:8px}
     .modal .content{padding:14px 16px;line-height:1.45}
-    .modal .content p{margin:6px 0}
     .modal .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .modal .field{display:flex;flex-direction:column;gap:6px;flex:1}
-    .modal input,.modal select{
+    .modal input,.modal select,.modal textarea{
       height:42px;padding:10px;border:2px solid #eee;border-radius:12px;font-size:14px;outline:none;background:#fff;
     }
-    .modal input:focus,.modal select:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(255,87,34,.12)}
+    .modal textarea{min-height:80px;resize:vertical}
+    .modal input:focus,.modal select:focus,.modal textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(255,87,34,.12)}
     .modal footer{display:flex;gap:10px;justify-content:flex-end;border-top:1px solid #eee;padding:12px}
     .hidden{display:none}
-    .warn-badge{color:#d7263d;font-weight:900}
 
-    /* Dots do tutorial */
-    .dots{display:flex;gap:6px;justify-content:center;margin-top:8px}
-    .dot{width:8px;height:8px;border-radius:999px;background:#ddd}
-    .dot.active{background:var(--primary)}
-
-    /* Bloco histórico de envios */
-    .log{margin-top:8px;border:1px solid var(--line);border-radius:14px;padding:10px;background:#fff}
-    .log h4{font-size:13px;font-weight:900;margin-bottom:6px;color:#444}
-    .log ul{list-style:none;display:grid;gap:6px;max-height:160px;overflow:auto}
-    .log li{font-size:12.5px;color:#555}
-    .log li .when{color:#888;margin-left:4px}
+    /* Neighborhood modal list */
+    .listbox{border:1px solid var(--line);border-radius:12px;max-height:360px;overflow:auto;background:#fff}
+    .list-head{position:sticky;top:0;background:#fafafa;border-bottom:1px solid var(--line);padding:8px 12px;font-weight:900;color:#444}
+    .list-item{display:flex;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid #f3f4f6;cursor:pointer}
+    .list-item:hover{background:#fff5f2}
+    .chips{display:flex;flex-wrap:wrap;gap:6px}
+    .chip-x{display:inline-flex;gap:6px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:12px}
+    .chip-x button{all:unset;cursor:pointer;font-weight:900;opacity:.7}
+    .chip-x button:hover{opacity:1}
 
     /* ===== TOAST CENTRAL ===== */
     .toast-center{
       position:fixed;left:50%;top:50%;
       transform:translate(-50%,-50%) scale(.94);
-      z-index:80;display:flex;flex-direction:column;align-items:center;gap:6px;
+      z-index:1100;display:flex;flex-direction:column;align-items:center;gap:6px;
       background:#fff;border:1px solid var(--line);
       padding:16px 18px;border-radius:16px;
       box-shadow:0 12px 30px rgba(0,0,0,.14);
@@ -184,7 +180,7 @@
 
     /* ===== Overlay de carregamento ===== */
     .loading-overlay{
-      position:fixed; inset:0; z-index:70;
+      position:fixed; inset:0; z-index:900;
       background:rgba(255,255,255,.84); backdrop-filter:blur(2px);
       display:none; align-items:center; justify-content:center;
     }
@@ -216,7 +212,7 @@
   <div class="appbar-inner">
     <div class="brand">
       <div class="logo"></div>
-      <h1><b>SPR</b> • Realocamento de Pacotes</h1>
+      <h1><b>SPR</b> • Realocamento de Pacotes 2.0</h1>
     </div>
   </div>
 </div>
@@ -248,7 +244,11 @@
 
       <div class="scanbar">
         <input id="scan" placeholder="Bipe/insira o BRS... (Enter)" autocomplete="off" disabled />
-        <button class="btn" id="btnScan" disabled>Bipar</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" id="btnScan" disabled>Bipar</button>
+          <!-- Novo: abre modal de Neighborhood -->
+          <button class="btn secondary" id="btnNeighModal" disabled>Pesquisar por Neighborhood</button>
+        </div>
       </div>
       <div id="scanMsg" class="muted" style="margin-top:6px">Carregue a planilha para habilitar a busca.</div>
 
@@ -301,7 +301,7 @@
         </div>
       </div>
 
-      <div id="placeholderRight" class="muted">Bipe um BRS para ver endereço, filtrar e listar as rotas do mesmo bairro.</div>
+      <div id="placeholderRight" class="muted">Bipe um BRS ou use a pesquisa por Neighborhood para listar as rotas.</div>
     </aside>
   </div>
 
@@ -355,7 +355,7 @@
 <!-- ========= Modals ========= -->
 <div id="overlay" class="modal-overlay">
 
-  <!-- info modal -->
+  <!-- Info genérica -->
   <div id="infoModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
     <header id="infoTitle">Informação</header>
     <div class="content" id="infoBody"></div>
@@ -364,14 +364,59 @@
     </footer>
   </div>
 
+  <!-- Modal: Pesquisa por Neighborhood (MULTI) -->
+  <div id="neighModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="neighTitle">
+    <header id="neighTitle">Pesquisar por Neighborhood</header>
+    <div class="content">
+      <div class="row">
+        <div class="field">
+          <label><b>Buscar</b></label>
+          <input id="neighQuery" placeholder="Digite para filtrar os bairros" autocomplete="off">
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <button class="btn small ghost" id="btnNeighSelectAll" title="Selecionar todos visíveis">Selecionar todos</button>
+          <button class="btn small ghost" id="btnNeighClear">Limpar</button>
+        </div>
+      </div>
+
+      <div class="listbox" id="neighList" style="margin-top:8px">
+        <div class="list-head">Bairros</div>
+        <!-- itens via JS -->
+      </div>
+
+      <div style="margin-top:8px">
+        <div class="label-strong">Selecionados</div>
+        <div id="neighChips" class="chips"></div>
+      </div>
+    </div>
+    <footer>
+      <button class="btn cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn" id="btnNeighApply">Aplicar</button>
+    </footer>
+  </div>
+
+  <!-- Modal: Inserir BR (para modo Neighborhood) -->
+  <div id="brModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="brTitle">
+    <header id="brTitle">Adicionar BR para a rota</header>
+    <div class="content">
+      <div class="field">
+        <label for="brInput"><b>BR &amp; Protocolo</b></label>
+        <input id="brInput" placeholder="Cole ou digite o BR (pode não existir na base)">
+      </div>
+      <p class="muted" id="brHint" style="margin-top:6px">O BR pode não estar na base; será aceito mesmo assim.</p>
+    </div>
+    <footer>
+      <button class="btn cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn" id="btnBrConfirm">Adicionar</button>
+    </footer>
+  </div>
+
   <!-- sheets form modal (ENVIAR) -->
   <div id="sheetsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="sheetsTitle">
     <header id="sheetsTitle">Enviar para Google Sheets</header>
     <div class="content">
       <div class="field">
-        <label for="sheetUrl">
-          <b>Insira aqui o link do Romaneio do dia feito pela roteirização</b>
-        </label>
+        <label for="sheetUrl"><b>Insira aqui o link do Romaneio do dia feito pela roteirização</b></label>
         <input id="sheetUrl" placeholder="Cole aqui o link completo da planilha">
       </div>
 
@@ -460,7 +505,7 @@
 /* ====== OAuth (GIS) ====== */
 const CLIENT_ID = '800747129509-98obq6okp3t6prjr9u1j2m5od2ip857n.apps.googleusercontent.com';
 const SCOPES = 'openid email https://www.googleapis.com/auth/spreadsheets';
-const ENFORCE_SHOPEE = true; // true = restringe a domínios autorizados
+const ENFORCE_SHOPEE = true;
 
 let accessToken = null;
 let tokenClient = null;
@@ -488,7 +533,6 @@ function showToastCenter({ok=true, title, subtitle}){
   const root = document.getElementById('toastRoot');
   const box = document.createElement('div');
   box.className = `toast-center ${ok?'toast-success':'toast-error'}`;
-
   const img = document.createElement('img');
   const svg = ok
     ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#16a34a"/><path d="M18 34l9 9 19-20" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`
@@ -496,13 +540,10 @@ function showToastCenter({ok=true, title, subtitle}){
   img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
   img.className = 'icon';
   img.alt = ok ? 'Sucesso' : 'Erro';
-
   const t = document.createElement('div'); t.className='title'; t.textContent = title || (ok?'Sucesso':'Erro');
   const s = document.createElement('div'); s.className='subtitle'; s.textContent = subtitle || '';
-
   box.appendChild(img); box.appendChild(t); if(subtitle) box.appendChild(s);
-  root.appendChild(box);
-  box.addEventListener('animationend', ()=> box.remove());
+  root.appendChild(box); box.addEventListener('animationend', ()=> box.remove());
 }
 
 /* Sons curtos */
@@ -528,24 +569,27 @@ function playErrorSound(){
 /* ====== Modal helpers ====== */
 const overlay = $("#overlay");
 const infoModal = $("#infoModal");
-const infoBody = $("#infoBody");
 const sheetsModal = $("#sheetsModal");
 const importModal = $("#importModal");
 const askModal = $("#askModal");
 const tutModal = $("#tutModal");
+const neighModal = $("#neighModal");
+const brModal = $("#brModal");
+
 function openModal(which){
   overlay.style.display = 'flex';
-  [infoModal, sheetsModal, importModal, askModal, tutModal].forEach(x=>x.classList.add('hidden'));
+  [infoModal, sheetsModal, importModal, askModal, tutModal, neighModal, brModal].forEach(x=>x.classList.add('hidden'));
   which.classList.remove('hidden');
 }
 function closeModal(){ overlay.style.display = 'none'; }
 function showInfo(title, html){
   $("#infoTitle").textContent = title || 'Informação';
-  infoBody.innerHTML = html || '';
+  $("#infoBody").innerHTML = html || '';
   openModal(infoModal);
 }
 
 /* ====== Persistência / Histórico ====== */
+let SELECTED = []; // {brs, at, rota}
 function saveHistory(){ try{ localStorage.setItem(storageKey(), JSON.stringify(SELECTED)); }catch(_){} }
 function loadHistoryForCurrentUser(){
   try{
@@ -634,7 +678,6 @@ async function getUserEmail(token){
   const data = await r.json();
   return String(data.email||'').toLowerCase();
 }
-/* === ACEITA @shopee.com E @shopeemobile-external.com === */
 async function gatekeepShopee(token){
   const email = await getUserEmail(token);
   const ok =
@@ -650,6 +693,7 @@ const stripAccents = (s='') => String(s).normalize('NFD').replace(/\p{Diacritic}
 const norm = (s='') => stripAccents(String(s).trim()).toLowerCase();
 const normBRS = (s='') => String(s).toUpperCase().replace(/[^A-Z0-9]/g,'');
 const isExcel = f => /\.(xlsx|xls)$/i.test(f?.name||'');
+function debounce(fn, ms=160){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; }
 
 /* ========= Mapeamento/normalização ========= */
 const COLS_EXT = {
@@ -678,13 +722,16 @@ function pick(row, names){
 /* ========= Estado ========= */
 let BASE_ROWS = [];
 let INDEX_BRS = new Map();
-let INDEX_BAIRRO_CLUSTER = new Map();
+let INDEX_BAIRRO_CLUSTER = new Map(); // key(bairro sem acento) -> Map(cage -> rows[])
 let INDEX_TOTAL_BY_CAGE = new Map();
 let VEH_TYPES = [];
 let VEH_FILTER = new Set();
 let LAST_ROW = null;
 let LAST_SAME = [];
-let SELECTED = []; // {brs, at, rota}
+
+/* Neighborhood modal state */
+let NEIGH_SELECTED = new Set();
+let NEIGH_PENDING_TARGET = null; // {cage, rows} para modal de BR
 
 /* ========= Excel ========= */
 function parseSheetToObjects(ws){
@@ -734,6 +781,10 @@ function buildIndexes(){
     const cage = r.rota || '(sem rota)';
     INDEX_TOTAL_BY_CAGE.set(cage, (INDEX_TOTAL_BY_CAGE.get(cage)||0) + 1);
   }
+
+  // Habilita botões atrelados à base
+  const enable = INDEX_BAIRRO_CLUSTER.size > 0;
+  $("#btnNeighModal").disabled = !enable;
 }
 
 /* ========= Filtro de veículos ========= */
@@ -758,7 +809,8 @@ function renderFilterUI(){
     label.querySelector('input').addEventListener('change', e=>{
       if(e.target.checked) VEH_FILTER.add(t); else VEH_FILTER.delete(t);
       localStorage.setItem(LS_VEH, JSON.stringify(Array.from(VEH_FILTER)));
-      rerenderSame();
+      rerenderSame(); // BR mode
+      // Neighborhood mode usa botão Aplicar (renderiza depois)
     });
   });
   bar.style.display = VEH_TYPES.length ? 'block' : 'none';
@@ -786,14 +838,15 @@ async function handleLoad(inputFile){
     const wsExt = wb.Sheets[extName];
     const rowsExt = parseSheetToObjects(wsExt);
 
-    BASE_ROWS = rowsExt.map(normalizeFromExt).filter(r=>r.brs);
+    BASE_ROWS = rowsExt.map(normalizeFromExt).filter(r=>r.brs || r.bairro);
     buildIndexes();
     rebuildVehicleFilterFromBase();
 
     $("#baseInfo").textContent = `${BASE_ROWS.length} linhas carregadas`;
     $("#sheetInfo").textContent = `Aba usada: ${extName}`;
     $("#scan").disabled = false; $("#btnScan").disabled = false;
-    $("#scanMsg").innerHTML = '<span class="ok">Base carregada! Já pode bipar.</span>';
+    $("#btnNeighModal").disabled = false;
+    $("#scanMsg").innerHTML = '<span class="ok">Base carregada! Já pode bipar ou pesquisar Neighborhood.</span>';
 
     const when = new Date().toLocaleString();
     $("#loadMsg").innerHTML = `<span class="ok">Arquivo "<b>${file.name}</b>" lido (${BASE_ROWS.length} linhas) em ${when}.</span>`;
@@ -827,13 +880,69 @@ function findSameNeighborhoodGrouped(bairro){
   const key = stripAccents(String(bairro||'').trim());
   const mapC = INDEX_BAIRRO_CLUSTER.get(key);
   if(!mapC) return [];
-  return Array.from(mapC.entries()).map(([cage,rows])=>({cage,rows}));
+  return Array.from(mapC.entries()).map(([cage,rows])=>({cage,rows,bairro}));
+}
+
+function fillSameTable(groups, bairroLabel, neighMode){
+  const tbody = $("#sameTable tbody"); tbody.innerHTML = "";
+  const labelInfo = neighMode
+    ? (groups.length ? `Encontradas ${groups.length} rotas nas seleção(ões) de Neighborhood.` : "Nenhuma rota para os bairros selecionados.")
+    : (groups.length ? `Encontradas ${groups.length} rotas com o mesmo Neighborhood.` : "Nenhuma outra rota com o mesmo Neighborhood.");
+  $("#sameInfo").textContent = labelInfo;
+
+  groups.forEach(g=>{
+    const qtdNoBairro = g.rows.length;
+    const veiculo = g.rows[0]?.veiculo || '—';
+    const isFiorino = /fiorino/i.test(veiculo);
+    const totalCage = INDEX_TOTAL_BY_CAGE.get(g.cage) || qtdNoBairro;
+    const bairroShown = g.bairro || bairroLabel || '—';
+
+    let statusHtml = '';
+    if(qtdNoBairro <= 3 && !isFiorino){
+      statusHtml = `<span class="warn-badge" title="Poucos pacotes neste bairro">⚠️ ${qtdNoBairro} <small>(poucos)</small></span>`;
+    }else{
+      statusHtml = `<span class="ok" title="Quantidade no bairro">${qtdNoBairro}</span>`;
+    }
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><span class="chip">${g.cage}</span></td>
+      <td>${bairroShown}</td>
+      <td>${veiculo}</td>
+      <td>${totalCage}</td>
+      <td>${statusHtml}</td>
+      <td><button class="btn small" data-cage="${g.cage}">Adicionar nesta rota</button></td>
+    `;
+    const btn = tr.querySelector('button');
+    btn.addEventListener('click', ()=>{
+      if(neighMode){
+        NEIGH_PENDING_TARGET = { cage: g.cage, rows: g.rows };
+        $("#brInput").value = '';
+        $("#brHint").textContent = `Rota: ${g.cage} • Bairro: ${bairroShown}`;
+        openModal(brModal);
+      }else{
+        if(!LAST_ROW) return;
+        const atTarget = pickRepresentativeAT(g.rows);
+        const ok = addSelection({ brs: LAST_ROW.brs, at: atTarget, rota: g.cage });
+        if(ok){
+          showToastCenter({ok:true, title:'Pacote adicionado', subtitle:`${LAST_ROW.brs} → ${atTarget}`});
+          playAddedSound(); try{navigator.vibrate?.(10);}catch(_){}
+        }else{
+          showToastCenter({ok:false, title:'Duplicado', subtitle:'BR já nesta AT'}); playErrorSound();
+        }
+      }
+    });
+    tbody.appendChild(tr);
+  });
+
+  $("#resultRight").style.display = "block";
+  $("#placeholderRight").style.display = "none";
 }
 
 function renderResult(row, same){
   const sameFiltered = same
     .filter(g => (g.cage||'') !== (row.rota||'')) 
-    .filter(g => !VEH_FILTER.size || VEH_FILTER.has((g.rows[0].veiculo||'').trim()));
+    .filter(g => !VEH_FILTER.size || VEH_FILTER.has((g.rows[0]?.veiculo||'').trim()));
 
   $("#resultLeft").style.display="block";
   $("#resultRight").style.display="block";
@@ -847,49 +956,7 @@ function renderResult(row, same){
 
   $("#kEndereco").textContent = row.endereco || '—';
 
-  const tbody = $("#sameTable tbody"); tbody.innerHTML = "";
-  sameFiltered.forEach(g=>{
-    const qtdNoBairro = g.rows.length;
-    const veiculo = g.rows[0].veiculo || '—';
-    const isFiorino = /fiorino/i.test(veiculo);
-    const totalCage = INDEX_TOTAL_BY_CAGE.get(g.cage) || qtdNoBairro;
-
-    let statusHtml = '';
-    if(qtdNoBairro <= 3 && !isFiorino){
-      statusHtml = `<span class="warn-badge" title="Poucos pacotes neste bairro">⚠️ ${qtdNoBairro} <small>(poucos)</small></span>`;
-    }else{
-      statusHtml = `<span class="ok" title="Quantidade no bairro">${qtdNoBairro}</span>`;
-    }
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><span class="chip">${g.cage}</span></td>
-      <td>${row.bairro}</td>
-      <td>${veiculo}</td>
-      <td>${totalCage}</td>
-      <td>${statusHtml}</td>
-      <td><button class="btn small" data-cage="${g.cage}">Adicionar nesta rota</button></td>
-    `;
-    const btn = tr.querySelector('button');
-    btn.addEventListener('click', ()=>{
-      if(!LAST_ROW) return;
-      const atTarget = pickRepresentativeAT(g.rows);
-      const ok = addSelection({ brs: LAST_ROW.brs, at: atTarget, rota: g.cage });
-      if(ok){
-        showToastCenter({ok:true, title:'Pacote adicionado', subtitle:`${LAST_ROW.brs} → ${atTarget}`});
-        playAddedSound();
-        if (navigator.vibrate) { try{ navigator.vibrate(10); }catch(_){} }
-      }else{
-        showToastCenter({ok:false, title:'Duplicado', subtitle:'BR já nesta AT'});
-        playErrorSound();
-      }
-    });
-    tbody.appendChild(tr);
-  });
-
-  $("#sameInfo").textContent = sameFiltered.length
-    ? `Encontradas ${sameFiltered.length} rotas com o mesmo Neighborhood.`
-    : "Nenhuma outra rota com o mesmo Neighborhood.";
+  fillSameTable(sameFiltered, row.bairro, /*neighMode=*/false);
 }
 
 function rerenderSame(){
@@ -897,7 +964,7 @@ function rerenderSame(){
   renderResult(LAST_ROW, LAST_SAME);
 }
 
-/* ========= Seleções / Realocações ========= */
+/* ========= Seleções ========= */
 function renderSelections(){
   const tbody = $("#selTable tbody");
   tbody.innerHTML = "";
@@ -918,8 +985,6 @@ function renderSelections(){
   });
   $("#selInfo").textContent = SELECTED.length ? `${SELECTED.length} item(ns)` : 'Sem itens.';
 }
-
-/* BLOQUEIO: BR não pode repetir na mesma AT */
 function addSelection({brs, at, rota}){
   const exists = SELECTED.some(it =>
     normBRS(it.brs) === normBRS(brs) &&
@@ -936,7 +1001,6 @@ function clearSelections(){
   try{ localStorage.removeItem(storageKey()); }catch(_){}
   renderSelections();
 }
-
 function exportSelections(){
   if(!SELECTED.length){ showInfo('Exportação', 'Nada para exportar.'); return; }
   const header = ['BR & Protocolo','AT & Protocolo','Rota'];
@@ -947,54 +1011,27 @@ function exportSelections(){
   XLSX.writeFile(wb, `realocacoes_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
-/* ========= Google Sheets (REST) ========= */
+/* ========= Google Sheets ========= */
 function parseSpreadsheetId(url){
   const m = String(url).match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
   return m ? m[1] : null;
 }
-function parseGid(url){
-  const m = String(url).match(/[?&#]gid=(\d+)/);
-  return m ? parseInt(m[1],10) : null;
-}
-async function gidToSheetTitle(spreadsheetId, gid){
-  if(gid === null || gid === undefined) return null;
-  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
-    headers: { Authorization: `Bearer ${accessToken}` }
-  });
-  if(!res.ok) return null;
-  const data = await res.json();
-  const sheet = (data.sheets||[]).find(s => s.properties && s.properties.sheetId === gid);
-  return sheet ? sheet.properties.title : null;
-}
-
-/* Listar abas (modal de ENVIAR) */
 async function listTabsFromUrl(){
   const link = $("#sheetUrl").value.trim();
   const select = $("#sheetTab");
   select.innerHTML = '<option value="">Carregando abas…</option>';
   select.disabled = true;
-
   const spreadsheetId = parseSpreadsheetId(link);
-  if(!spreadsheetId){
-    select.innerHTML = '<option value="">URL inválida</option>';
-    return;
-  }
-
+  if(!spreadsheetId){ select.innerHTML = '<option value="">URL inválida</option>'; return; }
   try{
     await ensureAuth();
     const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
       headers: { Authorization: `Bearer ${accessToken}` }
     });
-    if(!res.ok){
-      select.innerHTML = '<option value="">Falha ao listar abas</option>';
-      return;
-    }
+    if(!res.ok){ select.innerHTML = '<option value="">Falha ao listar abas</option>'; return; }
     const data = await res.json();
     const sheets = (data.sheets||[]).map(s => s.properties?.title).filter(Boolean);
-    if(!sheets.length){
-      select.innerHTML = '<option value="">Sem abas visíveis</option>';
-      return;
-    }
+    if(!sheets.length){ select.innerHTML = '<option value="">Sem abas visíveis</option>'; return; }
     select.innerHTML = sheets.map(t => `<option value="${t}">${t}</option>`).join('');
     select.disabled = false;
 
@@ -1009,14 +1046,11 @@ async function listTabsFromUrl(){
     select.innerHTML = '<option value="">Erro ao carregar abas</option>';
   }
 }
-
-/* abre modal de envio */
 function openSheetsModal(){
   $("#sheetUrl").value = '';
   $("#sheetTab").innerHTML = '<option value="">Cole a URL para listar as abas…</option>';
   $("#sheetTab").disabled = true;
   $("#startCell").value = 'A1';
-
   try{
     const last = JSON.parse(localStorage.getItem(lastSheetKey())||'null');
     if(last){
@@ -1024,37 +1058,24 @@ function openSheetsModal(){
       if(last.url) listTabsFromUrl();
     }
   }catch(_){}
-
   openModal(sheetsModal);
 }
-
-/* envia pro sheets — apenas BR e AT, sem cabeçalho */
 async function doSendToSheets(){
   if(!SELECTED.length){ showInfo('Envio', 'Nenhuma realocação na tabela.'); return; }
-
   const link = $("#sheetUrl").value.trim();
   if(!link){ showInfo('URL inválida', 'Cole o link completo da planilha do Google.'); return; }
   const spreadsheetId = parseSpreadsheetId(link);
   if(!spreadsheetId){ showInfo('URL inválida', 'Precisa ser um link de <b>docs.google.com/spreadsheets</b>.'); return; }
-
   await ensureAuth();
-
   const sheetTitle = $("#sheetTab").value.trim();
   const startCell  = $("#startCell").value.trim() || 'A1';
-  if(!sheetTitle){
-    showInfo('Aba obrigatória', 'Selecione a aba de destino.');
-    return;
-  }
-
+  if(!sheetTitle){ showInfo('Aba obrigatória', 'Selecione a aba de destino.'); return; }
   try{
     localStorage.setItem(lastSheetKey(), JSON.stringify({ url: link, spreadsheetId, sheetTitle, startCell }));
   }catch(_){}
-
   const range = `${sheetTitle}!${startCell}`;
-  const values = SELECTED.map(it=>[it.brs||'', it.at||'']); // sem cabeçalho
-
+  const values = SELECTED.map(it=>[it.brs||'', it.at||'']);
   const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
-
   try{
     const res = await fetch(apiUrl, {
       method: 'POST',
@@ -1066,25 +1087,18 @@ async function doSendToSheets(){
     showToastCenter({ok:true, title:'Enviado!', subtitle:'Dados enviados ao Sheets'});
     appendSendLog({ when: Date.now(), count: values.length, spreadsheetId, sheetTitle });
   }catch(err){
-    console.error(err);
     showToastCenter({ok:false, title:'Falha ao enviar'});
     showInfo('Falha ao enviar', 'Verifique permissões e se a API do Sheets está ativa.<br><small>'+ (err?.message||err) +'</small>');
   }
 }
 
-/* ========= Ler base direto do Google Sheets (aba CTs) ========= */
+/* ========= Ler do Sheets ========= */
 const DEFAULT_CTS_TITLE = "Calculation Tasks (CTs)";
-
 async function loadFromGoogleSheet(url, tabTitle = DEFAULT_CTS_TITLE){
   const spreadsheetId = parseSpreadsheetId(url);
-  if(!spreadsheetId){
-    showInfo('URL inválida', 'Cole um link de <b>docs.google.com/spreadsheets</b>.');
-    return;
-  }
-
+  if(!spreadsheetId){ showInfo('URL inválida', 'Cole um link de <b>docs.google.com/spreadsheets</b>.'); return; }
   await ensureAuth();
   showLoading('Lendo Google Sheets (CTs)…');
-
   try{
     const range = encodeURIComponent(`'${tabTitle}'!A:ZZZ`);
     const api = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`;
@@ -1095,10 +1109,7 @@ async function loadFromGoogleSheet(url, tabTitle = DEFAULT_CTS_TITLE){
     }
     const data = await res.json();
     const values = Array.isArray(data.values) ? data.values : [];
-    if(values.length < 2){
-      throw new Error(`A aba <b>${tabTitle}</b> não tem linhas suficientes (precisa de cabeçalho + dados).`);
-    }
-
+    if(values.length < 2){ throw new Error(`A aba <b>${tabTitle}</b> não tem linhas suficientes (precisa de cabeçalho + dados).`); }
     const header = values[0].map(h => String(h||'').trim());
     const rowsObj = values.slice(1).map(row => {
       const o = {};
@@ -1108,18 +1119,17 @@ async function loadFromGoogleSheet(url, tabTitle = DEFAULT_CTS_TITLE){
       }
       return o;
     });
-
-    BASE_ROWS = rowsObj.map(normalizeFromExt).filter(r=>r.brs);
+    BASE_ROWS = rowsObj.map(normalizeFromExt).filter(r=>r.brs || r.bairro);
     buildIndexes();
     rebuildVehicleFilterFromBase();
 
     $("#baseInfo").textContent = `${BASE_ROWS.length} linhas carregadas (Google Sheets)`;
     $("#sheetInfo").textContent = `Aba usada: ${tabTitle}`;
-    $("#scan").disabled = false; $("#btnScan").disabled = false;
-    $("#scanMsg").innerHTML = '<span class="ok">Base carregada! Já pode bipar.</span>';
+    $("#scan").disabled = false; $("#btnScan").disabled = false; $("#btnNeighModal").disabled = false;
+    $("#scanMsg").innerHTML = '<span class="ok">Base carregada! Já pode bipar ou pesquisar Neighborhood.</span>';
 
     hideLoading();
-    showToastCenter({ok:true, title:'Pacotes prontos', subtitle:'Lidos do Google Sheets (CTs)'});
+    showToastCenter({ok:true, title:'Pacotes prontos', subtitle:'Lidos do Google Sheets (CTs)'});    
     focusScan();
 
     try{
@@ -1135,55 +1145,35 @@ async function loadFromGoogleSheet(url, tabTitle = DEFAULT_CTS_TITLE){
     showInfo('Falha ao ler do Sheets', err?.message || String(err));
   }
 }
-
-/* Listar abas (modal de IMPORTAR) com preferência CTs */
 async function listTabsFromUrlForImport(){
   const link = $("#importUrl").value.trim();
   const select = $("#importTab");
-  select.innerHTML = '<option value="">Carregando abas…</option>';
-  select.disabled = true;
-
+  select.innerHTML = '<option value="">Carregando abas…</option>'; select.disabled = true;
   const spreadsheetId = parseSpreadsheetId(link);
-  if(!spreadsheetId){
-    select.innerHTML = '<option value="">URL inválida</option>';
-    return;
-  }
-
+  if(!spreadsheetId){ select.innerHTML = '<option value="">URL inválida</option>'; return; }
   try{
     await ensureAuth();
     const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
       headers: { Authorization: `Bearer ${accessToken}` }
     });
-    if(!res.ok){
-      select.innerHTML = '<option value="">Falha ao listar abas</option>';
-      return;
-    }
+    if(!res.ok){ select.innerHTML = '<option value="">Falha ao listar abas</option>'; return; }
     const data = await res.json();
     const sheets = (data.sheets||[]).map(s => s.properties?.title).filter(Boolean);
-    if(!sheets.length){
-      select.innerHTML = '<option value="">Sem abas visíveis</option>';
-      return;
-    }
+    if(!sheets.length){ select.innerHTML = '<option value="">Sem abas visíveis</option>'; return; }
     select.innerHTML = sheets.map(t => `<option value="${t}">${t}</option>`).join('');
     select.disabled = false;
-
-    // Seleciona automaticamente "Calculation Tasks (CTs)" se existir
     const preferred = sheets.find(t => t.trim().toLowerCase() === DEFAULT_CTS_TITLE.toLowerCase());
     select.value = preferred || sheets[0];
   }catch(_){
     select.innerHTML = '<option value="">Erro ao carregar abas</option>';
   }
 }
-
-/* abre modal de importação (LER DO SHEETS) */
 function openImportModal(){
   $("#importUrl").value = '';
   $("#importTab").innerHTML = '<option value="">Cole a URL para listar as abas…</option>';
   $("#importTab").disabled = true;
   openModal(importModal);
 }
-
-/* dispara importação */
 async function doImportFromSheets(){
   const url = $("#importUrl").value.trim();
   if(!url){ showInfo('URL inválida', 'Cole a URL do Google Sheets.'); return; }
@@ -1209,13 +1199,13 @@ function handleScan(){
   $("#scanMsg").innerHTML = '<span class="ok">Pesquisa concluída.</span>';
   input.value=''; focusScan();
 }
-
 function resetBase(){
   BASE_ROWS = []; INDEX_BRS.clear(); INDEX_BAIRRO_CLUSTER.clear(); INDEX_TOTAL_BY_CAGE.clear();
   LAST_ROW=null; LAST_SAME=[];
   $("#baseInfo").textContent = 'nenhuma carregada';
   $("#sheetInfo").textContent = '';
-  $("#scan").disabled = true; $("#btnScan").disabled = true; $("#scan").value='';
+  $("#scan").disabled = true; $("#btnScan").disabled = true; $("#btnNeighModal").disabled = true;
+  $("#scan").value='';
   $("#resultLeft").style.display='none';
   $("#resultRight").style.display='none';
   $("#placeholderRight").style.display='block';
@@ -1223,28 +1213,78 @@ function resetBase(){
   clearSelections();
 }
 
-/* ========= Drag & Drop + Auto load ========= */
-(function setupDnd(){
-  const dz = document.getElementById('dropzone');
-  const input = document.getElementById('file');
-  const prevent = e=>{e.preventDefault(); e.stopPropagation();};
-  ['dragenter','dragover','dragleave','drop'].forEach(ev=> dz.addEventListener(ev, prevent));
-  dz.addEventListener('dragenter', ()=> dz.classList.add('dragover'));
-  dz.addEventListener('dragover',  ()=> dz.classList.add('dragover'));
-  dz.addEventListener('dragleave', ()=> dz.classList.remove('dragover'));
-  dz.addEventListener('drop', (e)=>{
-    dz.classList.remove('dragover');
-    const f = e.dataTransfer?.files?.[0];
-    if(f){ input.files = e.dataTransfer.files; handleLoad(f); }
+/* ========= Neighborhood Modal ========= */
+function allNeighborhoodKeys(){
+  return Array.from(INDEX_BAIRRO_CLUSTER.keys()).sort((a,b)=> a.localeCompare(b,'pt-BR',{sensitivity:'base'}));
+}
+function visibleNeighborhoods(filter){
+  const t = norm(filter||'');
+  const all = allNeighborhoodKeys();
+  if(!t) return all;
+  return all.filter(k => norm(k).includes(t));
+}
+function renderNeighList(){
+  const list = $("#neighList");
+  const filter = $("#neighQuery").value;
+  const items = visibleNeighborhoods(filter);
+  list.innerHTML = `<div class="list-head">Bairros (${items.length})</div>`;
+  if(!items.length){
+    list.innerHTML += `<div class="list-item"><em class="muted">Nenhum bairro encontrado</em></div>`;
+    return;
+  }
+  items.forEach(k=>{
+    const id = 'n_'+k.replace(/\W+/g,'_');
+    const checked = NEIGH_SELECTED.has(k) ? 'checked' : '';
+    const row = document.createElement('div');
+    row.className = 'list-item';
+    row.innerHTML = `<input type="checkbox" id="${id}" ${checked}><label for="${id}" style="flex:1;cursor:pointer">${k}</label>`;
+    row.querySelector('input').addEventListener('change', e=>{
+      if(e.target.checked) NEIGH_SELECTED.add(k); else NEIGH_SELECTED.delete(k);
+      renderNeighChips();
+    });
+    list.appendChild(row);
   });
-
-  input.addEventListener('change', (e)=>{
-    const f = e.target.files?.[0];
-    if(f) handleLoad(f);
+}
+function renderNeighChips(){
+  const wrap = $("#neighChips"); wrap.innerHTML = '';
+  Array.from(NEIGH_SELECTED).sort((a,b)=>a.localeCompare(b,'pt-BR')).forEach(k=>{
+    const chip = document.createElement('div');
+    chip.className = 'chip-x';
+    chip.innerHTML = `<span>${k}</span><button title="Remover">×</button>`;
+    chip.querySelector('button').addEventListener('click', ()=>{
+      NEIGH_SELECTED.delete(k);
+      renderNeighChips();
+      renderNeighList();
+    });
+    wrap.appendChild(chip);
   });
-})();
+}
+function openNeigh(){
+  $("#neighQuery").value = '';
+  renderNeighList();
+  renderNeighChips();
+  openModal(neighModal);
+}
+function applyNeighSelection(){
+  // Combina grupos respeitando filtro de veículo
+  const cages = new Map(); // cage -> {cage, rows, bairro}
+  Array.from(NEIGH_SELECTED).forEach(k=>{
+    const mapC = INDEX_BAIRRO_CLUSTER.get(k);
+    if(!mapC) return;
+    for(const [cage, rows] of mapC.entries()){
+      if(!VEH_FILTER.size || VEH_FILTER.has((rows[0]?.veiculo||'').trim())){
+        const cur = cages.get(cage) || { cage, rows: [], bairro: k };
+        cur.rows.push(...rows);
+        cages.set(cage, cur);
+      }
+    }
+  });
+  const groups = Array.from(cages.values());
+  fillSameTable(groups, NEIGH_SELECTED.size === 1 ? Array.from(NEIGH_SELECTED)[0] : '(vários)', true);
+  closeModal();
+}
 
-/* ========= Onboarding & Listeners ========= */
+/* ========= Listeners ========= */
 document.addEventListener('DOMContentLoaded', ()=>{
   $("#btnLoad").addEventListener("click", ()=>handleLoad());
   $("#btnScan").addEventListener("click", handleScan);
@@ -1260,20 +1300,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
   $("#sheetUrl").addEventListener("blur", listTabsFromUrl);
   $("#btnDoSend").addEventListener("click", doSendToSheets);
 
-  // IMPORTAR (LER DO SHEETS) → modal e ações
+  // IMPORTAR (LER DO SHEETS)
   $("#btnLoadSheets").addEventListener("click", openImportModal);
   $("#importUrl").addEventListener("change", listTabsFromUrlForImport);
   $("#importUrl").addEventListener("blur", listTabsFromUrlForImport);
   $("#btnDoImport").addEventListener("click", doImportFromSheets);
 
   // Onboarding
-  $("#btnHelp").addEventListener("click", openAsk);
-  $("#fabHelp").addEventListener("click", openAsk);
+  $("#btnHelp").addEventListener("click", ()=>openModal(askModal));
+  $("#fabHelp").addEventListener("click", ()=>openModal(askModal));
   $("#btnAskYes").addEventListener("click", ()=>{ try{localStorage.setItem(onboardingKey(),'1');}catch(_){ } closeModal(); });
-  $("#btnAskNo").addEventListener("click", openTut);
+  $("#btnAskNo").addEventListener("click", ()=>{ tutIndex=0; renderTut(); openModal(tutModal); });
   $("#btnTutPrev").addEventListener("click", ()=>{ if(tutIndex>0){ tutIndex--; renderTut(); } });
   $("#btnTutNext").addEventListener("click", ()=>{ if(tutIndex<TUTORIAL_STEPS.length-1){ tutIndex++; renderTut(); } });
-  $("#btnTutDone").addEventListener("click", finishTut);
+  $("#btnTutDone").addEventListener("click", ()=>{ try{ localStorage.setItem(onboardingKey(),'1'); }catch(_){ } closeModal(); });
 
   // Rascunho local até logar
   loadHistoryForCurrentUser();
@@ -1284,16 +1324,45 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const when = new Date(last.when || Date.now()).toLocaleString();
     $("#baseInfo").textContent = `${last.rows} linhas carregadas (última: ${last.name} em ${when})`;
   }
+
+  // Neighborhood modal
+  $("#btnNeighModal").addEventListener('click', openNeigh);
+  $("#neighQuery").addEventListener('input', debounce(renderNeighList, 120));
+  $("#btnNeighSelectAll").addEventListener('click', ()=>{
+    visibleNeighborhoods($("#neighQuery").value).forEach(k=>NEIGH_SELECTED.add(k));
+    renderNeighList(); renderNeighChips();
+  });
+  $("#btnNeighClear").addEventListener('click', ()=>{
+    NEIGH_SELECTED.clear(); renderNeighList(); renderNeighChips();
+  });
+  $("#btnNeighApply").addEventListener('click', applyNeighSelection);
+
+  // BR modal confirm
+  $("#btnBrConfirm").addEventListener('click', ()=>{
+    const br = ($("#brInput").value||'').trim();
+    if(!br){ showToastCenter({ok:false,title:'BR obrigatório'}); return; }
+    if(!NEIGH_PENDING_TARGET){ closeModal(); return; }
+    const atTarget = pickRepresentativeAT(NEIGH_PENDING_TARGET.rows);
+    const ok = addSelection({ brs: br, at: atTarget, rota: NEIGH_PENDING_TARGET.cage });
+    if(ok){
+      showToastCenter({ok:true, title:'Pacote adicionado', subtitle:`${br} → ${atTarget}`});
+      playAddedSound(); try{navigator.vibrate?.(10);}catch(_){}
+    }else{
+      showToastCenter({ok:false, title:'Duplicado', subtitle:'BR já nesta AT'}); playErrorSound();
+    }
+    NEIGH_PENDING_TARGET = null;
+    closeModal();
+  });
 });
 
 /* ===== Tutorial ===== */
 const TUTORIAL_STEPS = [
   { t:'1) Carregar planilha', h:`Use <b>Arraste ou clique</b> e o botão <b>Carregar planilha</b>. Por padrão usamos a aba <b>Planilha1</b> (ou a primeira). Você também pode usar <b>Ler do Sheets</b> para puxar direto da aba <b>Calculation Tasks (CTs)</b>.` },
   { t:'2) Buscar um BRS', h:`No campo de busca, <b>bipe</b> ou digite o BRS e pressione Enter. À esquerda aparecem os <b>detalhes</b> (BRS, Rota, Bairro, Veículo, AT) e o <b>endereço</b>.` },
-  { t:'3) Rotas do mesmo bairro', h:`À direita listamos as <b>rotas com o mesmo Neighborhood</b>. Use os filtros por <b>Planned Vehicle Type</b>. Quando houver <b>poucos pacotes</b> em uma rota, aparece um aviso ⚠️.` },
-  { t:'4) Adicionar e revisar', h:`Clique em <b>Adicionar nesta rota</b> para montar a realocação. A tabela <b>Realocações selecionadas</b> mantém os itens. Você pode <b>remover</b> ou <b>limpar</b>; os itens ficam salvos por usuário.` },
+  { t:'3) Rotas do mesmo bairro', h:`À direita listamos as <b>rotas com o mesmo Neighborhood</b>. Use os filtros por <b>Planned Vehicle Type</b>.` },
+  { t:'4) Adicionar e revisar', h:`No modo <b>Neighborhood</b>, selecione os bairros no <b>modal</b>, aplique e então clique em <b>Adicionar nesta rota</b>. Será aberto um <b>modal para BR</b> — ele pode <b>não estar na base</b> e será aceito.` },
   { t:'5) Exportar ou Enviar para Sheets', h:`Use <b>Exportar (.xlsx)</b> ou <b>Enviar p/ Sheets</b>. Enviamos <b>somente BR e AT</b> (sem cabeçalho). O histórico de envios fica no final.` },
-  { t:'6) Permissões úteis', h:`Para ler/enviar, sua conta deve ter acesso à planilha (mínimo: leitura para ler, edição para enviar). O acesso pode ser restrito a <code>@shopee.com</code> e <code>@shopeemobile-external.com</code>.` }
+  { t:'6) Permissões úteis', h:`Para ler/enviar, sua conta deve ter acesso à planilha. O acesso pode ser restrito a <code>@shopee.com</code> e <code>@shopeemobile-external.com</code>.` }
 ];
 let tutIndex = 0;
 function renderTut(){
@@ -1306,13 +1375,29 @@ function renderTut(){
   $("#btnTutNext").style.display = tutIndex===TUTORIAL_STEPS.length-1?'none':'inline-block';
   $("#btnTutDone").style.display = tutIndex===TUTORIAL_STEPS.length-1?'inline-block':'none';
 }
-function openAsk(){ openModal(askModal); }
-function openTut(){ tutIndex=0; renderTut(); openModal(tutModal); }
-function finishTut(){ try{ localStorage.setItem(onboardingKey(),'1'); }catch(_){ } closeModal(); }
 function maybeShowOnboarding(){
-  try{ if(!localStorage.getItem(onboardingKey())) openAsk(); }catch(_){ openAsk(); }
+  try{ if(!localStorage.getItem(onboardingKey())) openModal(askModal); }catch(_){ openModal(askModal); }
 }
+
+/* ========= Drag & Drop ========= */
+(function setupDnd(){
+  const dz = document.getElementById('dropzone');
+  const input = document.getElementById('file');
+  const prevent = e=>{e.preventDefault(); e.stopPropagation();};
+  ['dragenter','dragover','dragleave','drop'].forEach(ev=> dz.addEventListener(ev, prevent));
+  dz.addEventListener('dragenter', ()=> dz.classList.add('dragover'));
+  dz.addEventListener('dragover',  ()=> dz.classList.add('dragover'));
+  dz.addEventListener('dragleave', ()=> dz.classList.remove('dragover'));
+  dz.addEventListener('drop', (e)=>{
+    dz.classList.remove('dragover');
+    const f = e.dataTransfer?.files?.[0];
+    if(f){ input.files = e.dataTransfer.files; handleLoad(f); }
+  });
+  input.addEventListener('change', (e)=>{
+    const f = e.target.files?.[0];
+    if(f) handleLoad(f);
+  });
+})();
 </script>
 </body>
 </html>
-
