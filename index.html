@@ -198,14 +198,6 @@
     }
     @keyframes spin{to{transform:rotate(360deg)}}
 
-    /* FAB Ajuda */
-    .fab{
-      position:fixed;right:18px;bottom:18px;z-index:40;
-      background:var(--primary);color:#fff;border:0;border-radius:999px;
-      padding:12px 16px;font-weight:900;box-shadow:0 10px 25px rgba(255,87,34,.35);cursor:pointer
-    }
-    .fab:hover{background:var(--primary-2)}
-
     /* ===== Detalhes extras de UI ===== */
     .chipCheck{display:inline-flex;align-items:center;margin:4px 6px 0 0}
     .chipCheck input{display:none}
@@ -214,9 +206,37 @@
     .warn-badge{display:inline-flex;align-items:center;gap:6px;background:#fff7ed;border:1px solid #ffedd5;color:#9a3412;padding:4px 8px;border-radius:999px;font-size:12px}
     code{background:#fff7f4;border:1px solid #ffe2d6;border-radius:6px;padding:1px 6px}
     .dropzone.dragover{border-color:var(--primary); box-shadow:0 0 0 6px rgba(255,87,34,.08)}
+
+    /* ===== Splash de boas-vindas (rápido) ===== */
+    .splash{
+      position:fixed; inset:0; z-index:1400;
+      display:flex; align-items:center; justify-content:center;
+      background:#ffffff;
+    }
+    .splash .box{
+      display:flex; flex-direction:column; align-items:center; gap:10px;
+      padding:22px 26px; border:1px solid var(--line); border-radius:18px;
+      box-shadow:var(--shadow-md); background:#fff;
+      transform:scale(.98); opacity:0; animation:splash-in .25s ease-out forwards;
+    }
+    .splash img{ width:120px; height:120px; object-fit:contain; }
+    .splash .title{ font-weight:900; font-size:18px; letter-spacing:.2px }
+    .splash .sub{ color:var(--muted); font-size:14px; font-weight:700; letter-spacing:.2px }
+    @keyframes splash-in{ to{ opacity:1; transform:scale(1)} }
+    .splash.hide{ animation:splash-out .35s ease-in forwards }
+    @keyframes splash-out{ to{ opacity:0; transform:scale(.985)} }
   </style>
 </head>
 <body>
+
+<!-- Splash rápido de boas-vindas (aparece só na 1ª visita) -->
+<div id="splash" class="splash" aria-hidden="true">
+  <div class="box">
+    <img src="https://media.giphy.com/media/Pj8pBI65xL1mKBBSiM/giphy.gif" alt="Bem-vindo">
+    <div class="title">Bem-vindo(a)!</div>
+    <div class="sub">Realocamento carregando…</div>
+  </div>
+</div>
 
 <!-- Appbar -->
 <div class="appbar">
@@ -239,7 +259,6 @@
       <button class="btn" id="btnLoadSheets" title="Ler dados do Google Sheets (CTs)">Ler Romaneio Sheets</button>
       <button class="btn secondary" id="btnReset" title="Limpa base e resultados">Limpar base</button>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <button class="btn ghost small" id="btnHelp" title="Como usar">Ajuda</button>
         <div id="loadMsg" class="muted">Aba padrão: <b>Planilha1</b></div>
       </div>
     </div>
@@ -257,7 +276,6 @@
         <input id="scan" placeholder="Bipe/insira o BRS... (Enter)" autocomplete="off" disabled />
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn" id="btnScan" disabled>Bipar</button>
-          <!-- Novo: abre modal de Neighborhood -->
           <button class="btn secondary" id="btnNeighModal" disabled>Pesquisar por Neighborhood</button>
         </div>
       </div>
@@ -321,7 +339,6 @@
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
       <div class="label-strong">Realocações selecionadas</div>
       <div class="actions">
-        <!-- NOVO BOTÃO -->
         <button class="btn small ghost" id="btnCopy" title="Copiar BR e AT para a área de transferência">Copiar BR e AT</button>
         <button class="btn small ghost" id="btnClearSel" title="Limpar tabela">Limpar</button>
         <button class="btn small" id="btnExport">Exportar (.xlsx)</button>
@@ -341,12 +358,6 @@
         </thead>
         <tbody></tbody>
       </table>
-    </div>
-
-    <!-- Log de envios -->
-    <div class="log" id="sendLog">
-      <h4>Histórico de envios</h4>
-      <ul id="sendLogList"><li class="muted">Nenhum envio ainda.</li></ul>
     </div>
   </section>
 
@@ -394,7 +405,6 @@
 
       <div class="listbox" id="neighList" style="margin-top:8px">
         <div class="list-head">Bairros</div>
-        <!-- itens via JS -->
       </div>
 
       <div style="margin-top:8px">
@@ -483,36 +493,7 @@
       <button class="btn" id="btnDoImport">Carregar</button>
     </footer>
   </div>
-
-  <!-- ONBOARDING: pergunta -->
-  <div id="askModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="askTitle">
-    <header id="askTitle">Você já sabe usar o site?</header>
-    <div class="content">
-      <p>Se você já conhece o fluxo, pode ir direto. Se preferir, te mostro um passo-a-passo curto (menos de 1 minuto).</p>
-    </div>
-    <footer>
-      <button class="btn cancel" id="btnAskYes">Sim, já sei</button>
-      <button class="btn" id="btnAskNo">Não, quero o tutorial</button>
-    </footer>
-  </div>
-
-  <!-- ONBOARDING: tutorial -->
-  <div id="tutModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="tutTitle">
-    <header id="tutTitle">Como usar – passo a passo</header>
-    <div class="content">
-      <div id="tutBody"></div>
-      <div class="dots" id="tutDots"></div>
-    </div>
-    <footer>
-      <button class="btn cancel" id="btnTutPrev">Voltar</button>
-      <button class="btn secondary" id="btnTutDone" style="display:none">Concluir</button>
-      <button class="btn" id="btnTutNext">Próximo</button>
-    </footer>
-  </div>
 </div>
-
-<!-- FAB (atalho) -->
-<button class="fab" id="fabHelp" title="Tutorial">Ajuda</button>
 
 <script>
 /* ====== OAuth (GIS) ====== */
@@ -526,16 +507,13 @@ let currentEmail = null;
 
 /* ====== Persistência por usuário ====== */
 const LS_PREFIX = 'spr_realloc_history_';
-const LS_SENDLOG = 'spr_realloc_sendlog_';
 const LS_LAST_SHEET = 'spr_realloc_last_sheet_';
 const LS_VEH = 'veh_filter';
 const LS_LAST_BASE = 'last_base_info';
-const ONBOARD_KEY = 'spr_onboarding_done_';
+const SPLASH_KEY = 'spr_welcome_seen_v1';
 
 function storageKey(){ return LS_PREFIX + (currentEmail || 'anon'); }
-function sendLogKey(){ return LS_SENDLOG + (currentEmail || 'anon'); }
 function lastSheetKey(){ return LS_LAST_SHEET + (currentEmail || 'anon'); }
-function onboardingKey(){ return ONBOARD_KEY + (currentEmail || 'anon'); }
 
 /* ====== Utils/UI ====== */
 const $ = s => document.querySelector(s);
@@ -584,14 +562,12 @@ const overlay = $("#overlay");
 const infoModal = $("#infoModal");
 const sheetsModal = $("#sheetsModal");
 const importModal = $("#importModal");
-const askModal = $("#askModal");
-const tutModal = $("#tutModal");
 const neighModal = $("#neighModal");
 const brModal = $("#brModal");
 
 function openModal(which){
   overlay.style.display = 'flex';
-  [infoModal, sheetsModal, importModal, askModal, tutModal, neighModal, brModal].forEach(x=>x.classList.add('hidden'));
+  [infoModal, sheetsModal, importModal, neighModal, brModal].forEach(x=>x.classList.add('hidden'));
   which.classList.remove('hidden');
 }
 function closeModal(){ overlay.style.display = 'none'; }
@@ -601,7 +577,7 @@ function showInfo(title, html){
   openModal(infoModal);
 }
 
-/* ====== Persistência / Histórico ====== */
+/* ====== Persistência / Seleções ====== */
 let SELECTED = []; // {brs, at, rota}
 function saveHistory(){ try{ localStorage.setItem(storageKey(), JSON.stringify(SELECTED)); }catch(_){} }
 function loadHistoryForCurrentUser(){
@@ -609,30 +585,6 @@ function loadHistoryForCurrentUser(){
     const raw = localStorage.getItem(storageKey());
     if(raw){ SELECTED = Array.isArray(JSON.parse(raw)) ? JSON.parse(raw) : []; renderSelections(); }
   }catch(_){}
-  renderSendLog();
-  maybeShowOnboarding();
-}
-function appendSendLog(entry){
-  try{
-    const raw = localStorage.getItem(sendLogKey());
-    const arr = raw ? JSON.parse(raw) : [];
-    arr.unshift(entry);
-    localStorage.setItem(sendLogKey(), JSON.stringify(arr.slice(0,50)));
-  }catch(_){}
-  renderSendLog();
-}
-function renderSendLog(){
-  const ul = $("#sendLogList");
-  ul.innerHTML = '';
-  try{
-    const arr = JSON.parse(localStorage.getItem(sendLogKey())||'[]');
-    if(!arr.length){ ul.innerHTML = '<li class="muted">Nenhum envio ainda.</li>'; return; }
-    for(const e of arr){
-      const li = document.createElement('li');
-      li.innerHTML = `<b>${e.count}</b> itens → <span class="chip">${e.sheetTitle||'?'}</span> <span class="muted">@ ${e.spreadsheetId.slice(0,8)}…</span> <span class="when">${new Date(e.when).toLocaleString()}</span>`;
-      ul.appendChild(li);
-    }
-  }catch(_){ ul.innerHTML = '<li class="muted">Nenhum envio ainda.</li>'; }
 }
 
 /* ====== OAuth init ====== */
@@ -795,7 +747,6 @@ function buildIndexes(){
     INDEX_TOTAL_BY_CAGE.set(cage, (INDEX_TOTAL_BY_CAGE.get(cage)||0) + 1);
   }
 
-  // Habilita botões atrelados à base
   const enable = INDEX_BAIRRO_CLUSTER.size > 0;
   $("#btnNeighModal").disabled = !enable;
 }
@@ -822,8 +773,7 @@ function renderFilterUI(){
     label.querySelector('input').addEventListener('change', e=>{
       if(e.target.checked) VEH_FILTER.add(t); else VEH_FILTER.delete(t);
       localStorage.setItem(LS_VEH, JSON.stringify(Array.from(VEH_FILTER)));
-      rerenderSame(); // BR mode
-      // Neighborhood mode usa botão Aplicar (renderiza depois)
+      rerenderSame();
     });
   });
   bar.style.display = VEH_TYPES.length ? 'block' : 'none';
@@ -1024,21 +974,18 @@ function exportSelections(){
   XLSX.writeFile(wb, `realocacoes_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
-/* ===== NOVO: Copiar BR e AT para a área de transferência ===== */
+/* ===== Copiar BR e AT ===== */
 async function copySelections(){
   if(!SELECTED.length){
     showToastCenter({ok:false, title:'Nada para copiar', subtitle:'A tabela de realocações está vazia.'});
     return;
   }
-  // Formato: "BR<TAB>AT" por linha — perfeito para Sheets/Excel
-  const text = SELECTED.map(it => `${(it.brs||'').toString()}\t${(it.at||'').toString()}`).join('\n');
-
+  const text = SELECTED.map(it => `${(it.brs||'')}\t${(it.at||'')}`).join('\n');
   try{
     await navigator.clipboard.writeText(text);
     showToastCenter({ok:true, title:'Copiado!', subtitle:`${SELECTED.length} linha(s) (BR e AT)`});
     try{ navigator.vibrate?.(12); }catch(_){}
   }catch(_){
-    // Fallback
     const ta = document.createElement('textarea');
     ta.value = text;
     ta.style.position='fixed'; ta.style.left='-9999px';
@@ -1124,7 +1071,6 @@ async function doSendToSheets(){
     if(!res.ok){ const txt = await res.text(); throw new Error(txt); }
     closeModal();
     showToastCenter({ok:true, title:'Enviado!', subtitle:'Dados enviados ao Sheets'});
-    appendSendLog({ when: Date.now(), count: values.length, spreadsheetId, sheetTitle });
   }catch(err){
     showToastCenter({ok:false, title:'Falha ao enviar'});
     showInfo('Falha ao enviar', 'Verifique permissões e se a API do Sheets está ativa.<br><small>'+ (err?.message||err) +'</small>');
@@ -1308,7 +1254,6 @@ function openNeigh(){
   openModal(neighModal);
 }
 function applyNeighSelection(){
-  // Combina grupos respeitando filtro de veículo
   const cages = new Map(); // cage -> {cage, rows, bairro}
   Array.from(NEIGH_SELECTED).forEach(k=>{
     const mapC = INDEX_BAIRRO_CLUSTER.get(k);
@@ -1328,6 +1273,16 @@ function applyNeighSelection(){
 
 /* ========= Listeners ========= */
 document.addEventListener('DOMContentLoaded', ()=>{
+  // Splash: mostra só na 1ª visita e some sozinho
+  (function maybeShowSplash(){
+    const el = document.getElementById('splash');
+    if(!el) return;
+    const seen = localStorage.getItem(SPLASH_KEY);
+    if(seen){ el.remove(); return; }
+    setTimeout(()=> el.classList.add('hide'), 1200);
+    setTimeout(()=> { el.remove(); localStorage.setItem(SPLASH_KEY,'1'); }, 1600);
+  })();
+
   $("#btnLoad").addEventListener("click", ()=>handleLoad());
   $("#btnScan").addEventListener("click", handleScan);
   $("#scan").addEventListener("keydown", e=>{ if(e.key === "Enter"){ e.preventDefault(); handleScan(); } });
@@ -1335,8 +1290,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   $("#btnExport").addEventListener("click", exportSelections);
   $("#btnClearSel").addEventListener("click", clearSelections);
-
-  // NOVO: copiar BR e AT
   $("#btnCopy").addEventListener("click", copySelections);
 
   // ENVIAR → modal e ações
@@ -1350,15 +1303,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   $("#importUrl").addEventListener("change", listTabsFromUrlForImport);
   $("#importUrl").addEventListener("blur", listTabsFromUrlForImport);
   $("#btnDoImport").addEventListener("click", doImportFromSheets);
-
-  // Onboarding
-  $("#btnHelp").addEventListener("click", ()=>openModal(askModal));
-  $("#fabHelp").addEventListener("click", ()=>openModal(askModal));
-  $("#btnAskYes").addEventListener("click", ()=>{ try{localStorage.setItem(onboardingKey(),'1');}catch(_){ } closeModal(); });
-  $("#btnAskNo").addEventListener("click", ()=>{ tutIndex=0; renderTut(); openModal(tutModal); });
-  $("#btnTutPrev").addEventListener("click", ()=>{ if(tutIndex>0){ tutIndex--; renderTut(); } });
-  $("#btnTutNext").addEventListener("click", ()=>{ if(tutIndex<TUTORIAL_STEPS.length-1){ tutIndex++; renderTut(); } });
-  $("#btnTutDone").addEventListener("click", ()=>{ try{ localStorage.setItem(onboardingKey(),'1'); }catch(_){ } closeModal(); });
 
   // Rascunho local até logar
   loadHistoryForCurrentUser();
@@ -1399,30 +1343,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     closeModal();
   });
 });
-
-/* ===== Tutorial ===== */
-const TUTORIAL_STEPS = [
-  { t:'1) Carregar planilha', h:`Use <b>Arraste ou clique</b> e o botão <b>Carregar planilha</b>. Por padrão usamos a aba <b>Planilha1</b> (ou a primeira). Você também pode usar <b>Ler do Sheets</b> para puxar direto da aba <b>Calculation Tasks (CTs)</b>.` },
-  { t:'2) Buscar um BRS', h:`No campo de busca, <b>bipe</b> ou digite o BRS e pressione Enter. À esquerda aparecem os <b>detalhes</b> (BRS, Rota, Bairro, Veículo, AT) e o <b>endereço</b>.` },
-  { t:'3) Rotas do mesmo bairro', h:`À direita listamos as <b>rotas com o mesmo Neighborhood</b>. Use os filtros por <b>Planned Vehicle Type</b>.` },
-  { t:'4) Adicionar e revisar', h:`No modo <b>Neighborhood</b>, selecione os bairros no <b>modal</b>, aplique e então clique em <b>Adicionar nesta rota</b>. Será aberto um <b>modal para BR</b> — ele pode <b>não estar na base</b> e será aceito.` },
-  { t:'5) Exportar ou Enviar para Sheets', h:`Use <b>Exportar (.xlsx)</b> ou <b>Enviar p/ Sheets</b>. Enviamos <b>somente BR e AT</b> (sem cabeçalho). O histórico de envios fica no final.` },
-  { t:'6) Permissões úteis', h:`Para ler/enviar, sua conta deve ter acesso à planilha. O acesso pode ser restrito a <code>@shopee.com</code> e <code>@shopeemobile-external.com</code>.` }
-];
-let tutIndex = 0;
-function renderTut(){
-  const body = $("#tutBody");
-  const dots = $("#tutDots");
-  const step = TUTORIAL_STEPS[tutIndex];
-  body.innerHTML = `<h3 style="margin-bottom:6px">${step.t}</h3><p>${step.h}</p>`;
-  dots.innerHTML = TUTORIAL_STEPS.map((_,i)=>`<span class="dot ${i===tutIndex?'active':''}"></span>`).join('');
-  $("#btnTutPrev").style.visibility = tutIndex===0?'hidden':'visible';
-  $("#btnTutNext").style.display = tutIndex===TUTORIAL_STEPS.length-1?'none':'inline-block';
-  $("#btnTutDone").style.display = tutIndex===TUTORIAL_STEPS.length-1?'inline-block':'none';
-}
-function maybeShowOnboarding(){
-  try{ if(!localStorage.getItem(onboardingKey())) openModal(askModal); }catch(_){ openModal(askModal); }
-}
 
 /* ========= Drag & Drop ========= */
 (function setupDnd(){
